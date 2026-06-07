@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+
+	<title>COSettings Protocol Reference</title>
+
+	<link rel="stylesheet" href="../css/style.css">
+	<link rel="stylesheet" href="../css/prism.css">
+	<script src="../js/jquery.min.js"></script>
+	<script src="../js/format.js"></script>
+	<script src="../js/prism.js" data-manual></script>
+	<script>
+		jQuery.noConflict();
+		jQuery( document ).ready(function( $ ) {
+ 			$("pre code").each(function(i, block) {
+				$(this).addClass("language-objectivec")
+				$(this).formatObjectiveC();
+			});
+
+			Prism.highlightAll()
+		});
+	</script>
+
+	<meta name="viewport" content="initial-scale=1, maximum-scale=1.4">
+	<meta name="generator" content="appledoc 2.2.1 (build 1334)">
+</head>
+<body class="appledoc">
+	<header>
+		<div class="container" class="hide-in-xcode">
+			
+			<h1 id="library-title">
+				<a href="../index.html">Capture One Plugins Framework </a>
+			</h1>
+
+			<p id="developer-home">
+				<a href="../index.html">Phase One A/S</a>
+			</p>
+			
+		</div>
+	</header>
+
+	<aside>
+		<div class="container">
+			<nav>
+				<ul id="header-buttons" role="toolbar">
+					<li><a href="../index.html">Index</a></li>
+<li><a href="../hierarchy.html">Hierarchy</a></li>
+
+					<li id="on-this-page" role="navigation">
+						<label>
+							On This Page
+
+							<div class="chevron">
+								<div class="chevy chevron-left"></div>
+								<div class="chevy chevron-right"></div>
+							</div>
+
+							<select id="jump-to">
+	<option value="top">Jump To&#133;</option>
+	
+	<option value="overview">Overview</option>
+	
+
+	
+	
+	<option value="tasks">Tasks</option>
+	
+	
+
+	
+	
+
+	
+
+	
+	<optgroup label="Instance Methods">
+		
+		<option value="//api/name/didUpdateValue:forSetting:error:callback:">- didUpdateValue:forSetting:error:callback:</option>
+		
+		<option value="//api/name/handleEvent:forSettingsItem:error:callback:">- handleEvent:forSettingsItem:error:callback:</option>
+		
+		<option value="//api/name/settingsWithError:">- settingsWithError:</option>
+		
+	</optgroup>
+	
+	
+</select>
+						</label>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</aside>
+
+	<article>
+		<div id="overview_contents" class="container">
+			<div id="content">
+				<main role="main">
+					<h1 class="title">COSettings Protocol Reference</h1>
+
+					
+					<div class="section section-specification"><table cellspacing="0"><tbody>
+						<tr>
+	<th>Declared in</th>
+	<td>COSettings.h</td>
+</tr>
+						</tbody></table></div>
+					
+
+                    
+					
+					<div class="section section-overview">
+						<a title="Overview" name="overview"></a>
+						<h2 class="subtitle subtitle-overview">Overview</h2>
+						<p>The <code>COSettings</code> protocol allows plugins to present a customizable settings UI
+to Capture One users. The settings are rendered inside Capture One&rsquo;s Plugin
+Manager located in the <em>Plugins</em> preference pane. (<em>Capture One > Preferences >
+Plugins</em>).</p><div class="warning"><p><strong>Warning:</strong> <strong>Capture One does not persist the settings values.</strong> It is the responsibility
+of the plugin&rsquo;s implementation of this protocol to provide the persistency layer.</p></div>
+					</div>
+					
+					
+
+					
+					
+					<div class="section section-tasks">
+						<a title="Tasks" name="tasks"></a>
+						
+
+						<a title="Configuring the Settings User Interface" name="task_Configuring the Settings User Interface"></a>
+						<h2 class="task-title">Configuring the Settings User Interface</h2>
+
+						<div class="task-list">
+							<div class="section-method">
+	<a name="//api/name/settingsWithError:" title="settingsWithError:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/settingsWithError:">&ndash;&nbsp;settingsWithError:</a></code>
+<span class="task-item-suffix">required method</span></h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Returns the description of the settings UI displayed in the plugin manager.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><pre><code>- (NSArray&lt;COSettingsElementsGroup*&gt; *_Nullable)settingsWithError:(NSError *__autoreleasing *)<em>error</em></code></pre></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>error</code></th>
+						<td><p>A pointer to an error object. If an error occurs, you can set this
+pointer to an actual error object containing the error information in order to
+communicate the error back to Capture One.</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+			<div class="method-subsection return">
+				<h4 class="method-subtitle parameter-title">Return Value</h4>
+				<p>An array of <a href="../Classes/COSettingsElementsGroup.html"><code>COSettingsElementsGroup</code></a> objects.</p>
+			</div>
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Each <a href="../Classes/COSettingsElementsGroup.html"><code>COSettingsElementsGroup</code></a> object returned is displayed as a tab, unless there is
+only one group, in which case, the tab-bar will not be rendered at all.</p>
+
+<p>In real world implementations, the decisin to create one or more tabs would be taken
+in accordance to the functionality that the plugin provides.</p>
+
+<p>For instance, a plugin that offers both publishing and round-trip editting
+functionality, or publishing functionality, but to multiple platforms, may want
+to visually separate the settings pertinent to each type of action - or to
+each publishing platform - so as to offer the user a clear context for the
+settings they are customizing.</p><div class="note"><p><strong>Note:</strong> In Swift, this method is marked with <code>throws</code> and does not have an associated
+error pointer. Implementations should use this pattern to communicate errors
+back to Capture One.</p></div>
+			</div>
+			
+
+			
+
+			
+			<div class="method-subsection see-also-section">
+				<h4 class="method-subtitle">See Also</h4>
+				<ul>
+					
+					<li><code><p><a href="https://developer.apple.com/documentation/swift/cocoa_design_patterns#//apple_ref/doc/uid/TP40014216-CH7-ID10">Error Handling</a> in <a href="https://developer.apple.com/documentation/swift#2984801">Using Swift with Cocoa and Objective-C</a></p></code></li>
+					
+				</ul>
+			</div>
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">COSettings.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div>
+						</div>
+						
+
+						<a title="Responding to Settings Changes" name="task_Responding to Settings Changes"></a>
+						<h2 class="task-title">Responding to Settings Changes</h2>
+
+						<div class="task-list">
+							<div class="section-method">
+	<a name="//api/name/didUpdateValue:forSetting:error:callback:" title="didUpdateValue:forSetting:error:callback:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/didUpdateValue:forSetting:error:callback:">&ndash;&nbsp;didUpdateValue:forSetting:error:callback:</a></code>
+<span class="task-item-suffix">required method</span></h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Respond to a change in the value of a setting as a result of user interaction.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><pre><code>- (BOOL)didUpdateValue:(id&lt;NSSecureCoding&gt;)<em>value</em> forSetting:(NSString *)<em>identifier</em> error:(NSError *__autoreleasing *)<em>error</em> callback:(COSettingsCallback)<em>callback</em></code></pre></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>value</code></th>
+						<td><p>The updated value. The type of this value will be dictated by the <a href="../Classes/COSettingsItem.html"><code>COSettingsItem</code></a> subclass object that described the UI element.</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>identifier</code></th>
+						<td><p>The identifier of the setting, as it was provided by the <a href="../Classes/COSettingsItem.html"><code>COSettingsItem</code></a> subclass object that described the UI element.</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>error</code></th>
+						<td><p>A pointer to an error object. If an error occurs, you can set this
+pointer to an actual error object containing the error information in order to
+communicate the error back to Capture One.</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>callback</code></th>
+						<td><p>A <a href="../Constants/COSettingsCallbackAction.html"><code>COSettingsCallbackAction</code></a> block that should be called in order to notify Capture One that an action must be taken in response to a settings update request.</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+			<div class="method-subsection return">
+				<h4 class="method-subtitle parameter-title">Return Value</h4>
+				<p><code>YES</code> if the operation was successful, <code>NO</code> if an error occured.</p>
+			</div>
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Capture One calls this method for every updated setting in Capture One&rsquo;s plugin
+manager. Implementations can use this method to persist the setting value and optionally,
+validate and notify Capture One if appropriate.</p><div class="warning"><p><strong>Warning:</strong> Since Capture One does not handle the persistency aspect, implementations
+should provide this functionality as appropriate. However, because of the user
+experience considerations involved in choosing latency prone storage options -
+such as calls to remote service APIs - developers are strongly encouraged to use
+either <code>NSUserDefaults</code> or another low latency approach.</p></div><div class="note"><p><strong>Note:</strong> In Swift, this method is marked with <code>throws</code> and does not have an associated
+error pointer. Implementations should use this pattern to communicate errors
+back to Capture One.</p></div>
+			</div>
+			
+
+			
+
+			
+			<div class="method-subsection see-also-section">
+				<h4 class="method-subtitle">See Also</h4>
+				<ul>
+					
+					<li><code><p><a href="https://developer.apple.com/documentation/swift/cocoa_design_patterns#//apple_ref/doc/uid/TP40014216-CH7-ID10">Error Handling</a> in <a href="https://developer.apple.com/documentation/swift#2984801">Using Swift with Cocoa and Objective-C</a></p></code></li>
+					
+				</ul>
+			</div>
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">COSettings.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div>
+						</div>
+						
+
+						<a title="Responding to Events" name="task_Responding to Events"></a>
+						<h2 class="task-title">Responding to Events</h2>
+
+						<div class="task-list">
+							<div class="section-method">
+	<a name="//api/name/handleEvent:forSettingsItem:error:callback:" title="handleEvent:forSettingsItem:error:callback:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/handleEvent:forSettingsItem:error:callback:">&ndash;&nbsp;handleEvent:forSettingsItem:error:callback:</a></code>
+<span class="task-item-suffix">required method</span></h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Respond to a user-initiated event in Capture One.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><pre><code>- (BOOL)handleEvent:(COSettingsEvent)<em>event</em> forSettingsItem:(COSettingsItem *)<em>item</em> error:(NSError *__autoreleasing *)<em>error</em> callback:(COSettingsCallback)<em>callback</em></code></pre></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>event</code></th>
+						<td><p>The <a href="../Constants/COSettingsEvent.html"><code>COSettingsEvent</code></a> that occured. The type of the event will be dictated by the <a href="../Classes/COSettingsItem.html"><code>COSettingsItem</code></a> subclass object that described the UI element.</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>item</code></th>
+						<td><p>The <a href="../Classes/COSettingsItem.html"><code>COSettingsItem</code></a> that triggered the event.</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>error</code></th>
+						<td><p>A pointer to an error object. If an error occurs, you can set this
+pointer to an actual error object containing the error information in order to
+communicate the error back to Capture One.</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>callback</code></th>
+						<td><p>A <a href="../Constants/COSettingsCallbackAction.html"><code>COSettingsCallbackAction</code></a> block that should be called in order to notify Capture One that an action must be taken in response to a settings update request.</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+			<div class="method-subsection return">
+				<h4 class="method-subtitle parameter-title">Return Value</h4>
+				<p><code>YES</code> if the event was handled successfully, <code>NO</code> if an error occured.</p>
+			</div>
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Capture One calls this method every time a user interacts with UI elements that
+broadcast <code>COSettingsEvents</code>, such as buttons - rendered by <a href="../Classes/COSettingsButtonItem.html"><code>COSettingsButtonItem</code></a>.</p><div class="note"><p><strong>Note:</strong> In Swift, this method is marked with <code>throws</code> and does not have an associated
+error pointer. Implementations should use this pattern to communicate errors
+back to Capture One.</p></div>
+			</div>
+			
+
+			
+
+			
+			<div class="method-subsection see-also-section">
+				<h4 class="method-subtitle">See Also</h4>
+				<ul>
+					
+					<li><code><p><a href="https://developer.apple.com/documentation/swift/cocoa_design_patterns#//apple_ref/doc/uid/TP40014216-CH7-ID10">Error Handling</a> in <a href="https://developer.apple.com/documentation/swift#2984801">Using Swift with Cocoa and Objective-C</a></p></code></li>
+					
+				</ul>
+			</div>
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">COSettings.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div>
+						</div>
+						
+					</div>
+					
+					
+
+                    
+                    
+          
+				</main>
+
+				<footer>
+					<div class="footer-copyright">
+						
+						<p class="copyright">Copyright &copy; 2018 Phase One A/S. All rights reserved. Updated: 2018-11-14</p>
+						
+						
+						<p class="generator">Generated by <a href="http://appledoc.gentlebytes.com">appledoc 2.2.1 (build 1334)</a>.</p>
+						
+					</div>
+				</footer>
+			</div>
+		</div>
+	</article>
+
+	<script src="../js/script.js"></script>
+</body>
+</html>

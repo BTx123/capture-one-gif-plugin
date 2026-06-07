@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+
+	<title>COOpenWithPluginRole Constants Reference</title>
+
+	<link rel="stylesheet" href="../css/style.css">
+	<link rel="stylesheet" href="../css/prism.css">
+	<script src="../js/jquery.min.js"></script>
+	<script src="../js/format.js"></script>
+	<script src="../js/prism.js" data-manual></script>
+	<script>
+		jQuery.noConflict();
+		jQuery( document ).ready(function( $ ) {
+ 			$("pre code").each(function(i, block) {
+				$(this).addClass("language-objectivec")
+				$(this).formatObjectiveC();
+			});
+
+			Prism.highlightAll()
+		});
+	</script>
+
+	<meta name="viewport" content="initial-scale=1, maximum-scale=1.4">
+	<meta name="generator" content="appledoc 2.2.1 (build 1334)">
+</head>
+<body class="appledoc">
+	<header>
+		<div class="container" class="hide-in-xcode">
+			
+			<h1 id="library-title">
+				<a href="../index.html">Capture One Plugins Framework </a>
+			</h1>
+
+			<p id="developer-home">
+				<a href="../index.html">Phase One A/S</a>
+			</p>
+			
+		</div>
+	</header>
+
+	<aside>
+		<div class="container">
+			<nav>
+				<ul id="header-buttons" role="toolbar">
+					<li><a href="../index.html">Index</a></li>
+<li><a href="../hierarchy.html">Hierarchy</a></li>
+
+					<li id="on-this-page" role="navigation">
+						<label>
+							On This Page
+
+							<div class="chevron">
+								<div class="chevy chevron-left"></div>
+								<div class="chevy chevron-right"></div>
+							</div>
+
+							<select id="jump-to">
+	<option value="top">Jump To&#133;</option>
+	
+
+	
+
+	
+</select>
+						</label>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</aside>
+
+	<article>
+		<div id="overview_contents" class="container">
+			<div id="content">
+				<main role="main">
+					<h1 class="title">COOpenWithPluginRole Constants Reference</h1>
+
+					
+					<div class="section section-specification"><table cellspacing="0"><tbody>
+						<tr>
+	<th>Declared in</th>
+	<td>COOpenWithPlugin.h</td>
+</tr>
+						</tbody></table></div>
+					
+
+                    
+
+					
+
+                    
+                    <h3 class="subsubtitle method-title">COOpenWithPluginRole</h3>
+                    
+					
+					<div class="section section-overview">
+                        <p>Describes the various situations in which <em>Open With</em> actions are used. By only providing
+actions for some of the <code>COOpenWithPluginRole</code>s, you can make sure your actions are only
+displayed in some menues populated with <em>Open With</em> actions. For example, you could only
+provide actions as post-process steps for recipes, and not for the <em>Open With</em> context menu.</p>
+					</div>
+					
+					
+                    <div class="section">
+                        <!-- display enum values -->
+                        
+                        <h4 class="method-subtitle">Definition</h4>
+                        <pre><code>typedef NS_OPTIONS(NSUInteger, COOpenWithPluginRole ) { 
+	<a href="">COOpenWithPluginRoleOpenOriginal</a> = 0,
+	<a href="">COOpenWithPluginRolePostProcessInDocument</a> = 1,
+	<a href="">COOpenWithPluginRolePostProcessOutput</a> = 2,
+};</code></pre>
+                    
+                    </div>
+                    
+                    <div class="section section-methods">
+                        <h4 class="method-subtitle">Constants</h4>
+                        <dl class="termdef">
+                            
+                            <dt><a name="" title="COOpenWithPluginRoleOpenOriginal"></a><code>COOpenWithPluginRoleOpenOriginal</code></dt>
+<dd>
+
+
+<p>The URL of an original file stored in a Capture One document is passed to the plugin.
+        Don&rsquo;t provide any action for this role if you do not want to modify users original data.
+        Actions of this role are used to populate the &ldquo;Open With&rdquo; menu in Capture One.</p>
+
+
+
+
+
+    
+	<p>
+		Declared In <code class="declared-in-ref">COOpenWithPlugin.h</code>.
+	</p>
+	
+</dd>
+                            
+                            <dt><a name="" title="COOpenWithPluginRolePostProcessInDocument"></a><code>COOpenWithPluginRolePostProcessInDocument</code></dt>
+<dd>
+
+
+<p>An image is first processed, then imported into the Capture One document, and finally
+        passed on to the plugin for post processing.
+        Actions of this role are used to populate the &ldquo;Edit With&rdquo; menu in Capture One.</p>
+
+
+
+
+
+    
+	<p>
+		Declared In <code class="declared-in-ref">COOpenWithPlugin.h</code>.
+	</p>
+	
+</dd>
+                            
+                            <dt><a name="" title="COOpenWithPluginRolePostProcessOutput"></a><code>COOpenWithPluginRolePostProcessOutput</code></dt>
+<dd>
+
+
+<p>An image is processed in Capture One and then passed on to the plugin for post processing.
+        Actions of this role are used to populate the &ldquo;Open&rdquo; dropdown in a Recipe and in the Export
+        window.</p>
+
+
+
+
+
+    
+	<p>
+		Declared In <code class="declared-in-ref">COOpenWithPlugin.h</code>.
+	</p>
+	
+</dd>
+                            
+                        </dl>
+                    </div>
+                    
+
+                    
+                    
+
+                    
+
+                    
+                    <div class="method-subsection declared-in-section">
+                        <h4 class="method-subtitle">Declared In</h4>
+                        <p><code class="declared-in-ref">COOpenWithPlugin.h</code></p>
+                    </div>
+                    
+                    
+                    
+                    
+          
+				</main>
+
+				<footer>
+					<div class="footer-copyright">
+						
+						<p class="copyright">Copyright &copy; 2018 Phase One A/S. All rights reserved. Updated: 2018-11-14</p>
+						
+						
+						<p class="generator">Generated by <a href="http://appledoc.gentlebytes.com">appledoc 2.2.1 (build 1334)</a>.</p>
+						
+					</div>
+				</footer>
+			</div>
+		</div>
+	</article>
+
+	<script src="../js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+framework module CaptureOnePlugins {
+  umbrella header "CaptureOnePlugins.h"
+
+  export *
+  module * { export * }
+}
