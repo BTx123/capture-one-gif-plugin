@@ -410,8 +410,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         process.executableURL = executableURL
         process.arguments = arguments
 
-        let logUrl = FileManager.default.temporaryDirectory.appendingPathComponent("COGifPlugin-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: logUrl, withIntermediateDirectories: true)
+        let logUrl = FileManager.default.temporaryDirectory.appendingPathComponent("COGifPlugin-\(UUID().uuidString).log")
         FileManager.default.createFile(atPath: logUrl.path, contents: nil, attributes: nil)
         let logHandle = try FileHandle(forWritingTo: logUrl)
         defer {
