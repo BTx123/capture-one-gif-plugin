@@ -15,6 +15,21 @@ brew install ffmpeg
 brew install imagemagick
 ```
 
+## Usage
+
+Close Capture One before installing or replacing the plugin.
+
+1. Open the [latest GitHub release](https://github.com/BTx123/capture-one-gif-plugin/releases/latest).
+2. Download the plugin zip for your Mac:
+   - Apple Silicon: `COGifPlugin-<version>-macos-arm64.zip`
+   - Intel: `COGifPlugin-<version>-macos-x86_64.zip`
+3. Unzip the downloaded file. It contains `COGifPlugin.coplugin`.
+4. Double-click `COGifPlugin.coplugin` to launch the Capture One plugin installer.
+
+  > Release builds are not currently notarized by Apple. macOS may show an `Apple could not verify` warning when you open the plugin. If you trust this download, follow Apple's instructions to override Gatekeeper from Privacy & Security: [Open a Mac app from an unknown developer](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unknown-developer-mh40616/mac).
+
+5. Restart Capture One after installing and verify the plugin is enabled.
+
 ## Build
 
 From repository root:
@@ -45,7 +60,7 @@ xcodebuild \
   build
 ```
 
-## Install
+## Install Development Build
 
 Close Capture One before installing or relinking the plugin.
 
