@@ -41,7 +41,7 @@ jobs:
 
       - name: Set plugin version
         shell: bash
-        run: scripts/set-plugin-version.sh
+        run: bash scripts/set-plugin-version.sh
 
       - name: Build plugin
         run: |
