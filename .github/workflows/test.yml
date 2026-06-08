@@ -1,0 +1,52 @@
+name: Test
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT: COGifPlugin.xcodeproj
+  SCHEME: COGifPlugin
+  CONFIGURATION: Debug
+
+jobs:
+  test:
+    name: XCTest
+    runs-on: macos-15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Show toolchain
+        run: |
+          set -euo pipefail
+          uname -a
+          uname -m
+          xcodebuild -version
+          swift --version
+
+      - name: Run tests
+        run: |
+          set -euo pipefail
+          DERIVED_DATA="$RUNNER_TEMP/COGifPluginTestDerivedData"
+          RESULT_BUNDLE="$RUNNER_TEMP/COGifPluginTests.xcresult"
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath "$RESULT_BUNDLE" \
+            CODE_SIGN_IDENTITY="-" \
+            test
+
+      - name: Upload test result bundle
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: COGifPluginTests-xcresult
+          path: ${{ runner.temp }}/COGifPluginTests.xcresult
+          if-no-files-found: ignore
+          retention-days: 14

@@ -62,6 +62,22 @@ xcodebuild \
   build
 ```
 
+## Test
+
+Run unit tests from repository root:
+
+```bash
+xcodebuild \
+  -project COGifPlugin.xcodeproj \
+  -scheme COGifPlugin \
+  -configuration Debug \
+  -derivedDataPath /tmp/COGifPluginTestDerivedData \
+  -resultBundlePath /tmp/COGifPluginTests.xcresult \
+  test
+```
+
+FFmpeg and ImageMagick integration tests skip automatically when backend tools are not installed.
+
 ## Install Development Build
 
 Close Capture One before installing or relinking the plugin.
