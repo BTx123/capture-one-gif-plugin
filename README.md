@@ -1,4 +1,6 @@
-# Create GIF Capture One Plugin
+# Create GIF Capture One 
+
+[![CI](https://github.com/BTx123/capture-one-gif-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/BTx123/capture-one-gif-plugin/actions/workflows/ci.yml) [![Release](https://github.com/BTx123/capture-one-gif-plugin/actions/workflows/release.yml/badge.svg)](https://github.com/BTx123/capture-one-gif-plugin/actions/workflows/release.yml)
 
 Create GIF creates an animated GIF from selected Capture One variants. It supports FFmpeg and ImageMagick backends, configurable quality, frame delay, looping, frame order, and Finder reveal after export.
 
