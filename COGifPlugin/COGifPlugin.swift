@@ -12,7 +12,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
     private enum PersistentSetting {
         static let backend = "backend"
     }
-    
+
     private enum Setting {
         static let quality = "quality"
         static let frameDelay = "frameDelay"
@@ -151,9 +151,9 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         let frameOrder: FrameOrder
         let revealInFinder: Bool
     }
-    
+
     // MARK: - COEditingPlugin
-    
+
     func editingActions(withFileInfo info: [String : NSNumber]) throws -> [COPluginAction] {
         // We cannot perform any action without multiple files
         let fileCount = info.values.map { $0.intValue }.reduce(0, +)
@@ -163,7 +163,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
 
         return [COGifPlugin.createGifAction]
     }
-    
+
     func startEditing(_ task: COFileHandlingPluginTask, progress: @escaping COPluginTaskProgress) throws -> COPluginActionImageResult {
         guard task.action.isEqual(to: COGifPlugin.createGifAction) else {
             throw COGifPluginError.invalidAction
@@ -179,7 +179,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         let targetDimensions = try COGifPlugin.targetDimensions(for: orderedFiles)
         let outputURL = try COGifPlugin.outputURL(for: task, firstImagePath: orderedFiles[0])
 
-        progress(task, 1, 3, "Preparing GIF")
+        progress(task, 1, 5, "Preparing GIF")
 
         if task.cancelled {
             return COPluginActionImageResult()
@@ -187,23 +187,23 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
 
         switch options.backend {
         case .ffmpeg:
-            try COGifPlugin.createGifWithFFmpeg(files: orderedFiles, options: options, targetDimensions: targetDimensions, outputURL: outputURL)
+            try COGifPlugin.createGifWithFFmpeg(files: orderedFiles, options: options, targetDimensions: targetDimensions, outputURL: outputURL, task: task, progress: progress)
         case .magick:
-            try COGifPlugin.createGifWithMagick(files: orderedFiles, options: options, targetDimensions: targetDimensions, outputURL: outputURL)
+            try COGifPlugin.createGifWithMagick(files: orderedFiles, options: options, targetDimensions: targetDimensions, outputURL: outputURL, task: task, progress: progress)
         }
-
-        progress(task, 2, 3, "Created \(outputURL.lastPathComponent)")
 
         if task.cancelled {
             try? FileManager.default.removeItem(at: outputURL)
             return COPluginActionImageResult()
         }
 
+        progress(task, 4, 5, "Writing \(outputURL.lastPathComponent)")
+
         if options.revealInFinder {
             NSWorkspace.shared.activateFileViewerSelecting([outputURL])
         }
 
-        progress(task, 3, 3, nil)
+        progress(task, 5, 5, "Done")
         return COPluginActionImageResult(images: [outputURL.path])
     }
 
@@ -371,10 +371,20 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
 
     // MARK: - GIF generation
 
-    private static func createGifWithFFmpeg(files: [String], options: GifOptions, targetDimensions: CGSize, outputURL: URL) throws {
+    private static func createGifWithFFmpeg(files: [String], options: GifOptions, targetDimensions: CGSize, outputURL: URL, task: COFileHandlingPluginTask, progress: COPluginTaskProgress) throws {
         let ffmpegURL = try executableURL(named: "ffmpeg")
         let framesDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("COGifPlugin-\(UUID().uuidString)", isDirectory: true)
+        progress(task, 2, 5, "Normalizing frames")
+        if task.cancelled {
+            return
+        }
+
         let normalizedFrames = try COGifPlugin.normalizedFrameURLs(for: files, targetDimensions: targetDimensions, outputDirectory: framesDirectory)
+        if task.cancelled {
+            try? FileManager.default.removeItem(at: framesDirectory)
+            return
+        }
+
         let listURL = FileManager.default.temporaryDirectory.appendingPathComponent("COGifPlugin-\(UUID().uuidString).txt")
         let list = COGifPlugin.ffmpegConcatList(for: normalizedFrames.map(\.path), frameDelay: options.frameDelay)
         let outputFilter = COGifPlugin.ffmpegGifFilter(
@@ -386,7 +396,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             try? FileManager.default.removeItem(at: listURL)
             try? FileManager.default.removeItem(at: framesDirectory)
         }
-        
+
         let arguments = [
             "-y",
             "-f", "concat",
@@ -398,13 +408,26 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             outputURL.path
         ]
 
+        progress(task, 3, 5, "Running FFmpeg")
+        if task.cancelled {
+            return
+        }
+
         try run(executableURL: ffmpegURL, arguments: arguments)
+        if task.cancelled {
+            try? FileManager.default.removeItem(at: outputURL)
+        }
     }
 
-    private static func createGifWithMagick(files: [String], options: GifOptions, targetDimensions: CGSize, outputURL: URL) throws {
+    private static func createGifWithMagick(files: [String], options: GifOptions, targetDimensions: CGSize, outputURL: URL, task: COFileHandlingPluginTask, progress: COPluginTaskProgress) throws {
         let magickURL = try executableURL(named: "magick")
         let delay = max(1, Int((options.frameDelay.seconds * 100.0).rounded()))
         var arguments = ["-delay", "\(delay)"]
+
+        progress(task, 2, 5, "Normalizing frames")
+        if task.cancelled {
+            return
+        }
 
         if options.loop {
             arguments.append(contentsOf: ["-loop", "0"])
@@ -426,7 +449,15 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         ])
         arguments.append(contentsOf: ["-layers", "Optimize", outputURL.path])
 
+        if task.cancelled {
+            return
+        }
+
+        progress(task, 3, 5, "Running ImageMagick")
         try run(executableURL: magickURL, arguments: arguments)
+        if task.cancelled {
+            try? FileManager.default.removeItem(at: outputURL)
+        }
     }
 
     private static func run(executableURL: URL, arguments: [String]) throws {
