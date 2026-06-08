@@ -7,7 +7,7 @@
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleGetInfoString</key>
-	<string>Allows publishing to GIF image format</string>
+	<string>Create GIFs from multiple images</string>
 	<key>CFBundleIconFile</key>
 	<string>COGifPluginIcon</string>
 	<key>CFBundleIdentifier</key>
