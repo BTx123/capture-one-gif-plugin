@@ -239,7 +239,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         let help = COSettingsLabelItem()
         help.title = ""
         help.identifier = "help"
-        help.value = "Prior to creating a GIF, ensure one of the below backends is installed and available on PATH. You can verify FFmpeg is installed by running `ffmpeg -version` in the terminal. You can verify ImageMagick is installed by running `magick -version` in the terminal."
+        help.value = "Prior to creating a GIF, ensure one of the below backends is installed and available on PATH. You can verify the selected backend is installed by clicking the 'Check' button after selecting you desired backend."
         help.informativeText = ""
         options.elements.append(help)
 
@@ -270,24 +270,23 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         return [options]
     }
 
-    func didUpdateValue(_ value: NSSecureCoding, forSetting identifier: String, callback _: @escaping COSettingsCallback) throws {
-        guard identifier == PersistentSetting.backend else {
-            return
+    func didUpdateValue(_ value: NSSecureCoding, forSetting identifier: String, callback: @escaping COSettingsCallback) throws {
+        if identifier == PersistentSetting.backend {
+            guard let rawValue = value as? String, Backend(rawValue: rawValue) != nil else {
+                throw COGifPluginError.invalidSettingValue(setting: "Backend")
+            }
+            
+            UserDefaults.standard.set(rawValue, forKey: PersistentSetting.backend)
+            backendCheckStatus = nil
         }
 
-        guard let rawValue = value as? String, Backend(rawValue: rawValue) != nil else {
-            throw COGifPluginError.invalidSettingValue(setting: "Backend")
-        }
-
-        UserDefaults.standard.set(rawValue, forKey: PersistentSetting.backend)
+        callback(.refresh, nil)
     }
 
     func handle(_ event: COSettingsEvent, for item: COSettingsItem, callback: @escaping COSettingsCallback) throws {
-        guard event == .buttonClick, item.identifier == PersistentSetting.checkSelectedBackend else {
-            throw COGifPluginError.invalidAction
+        if event == .buttonClick && item.identifier == PersistentSetting.checkSelectedBackend {
+            backendCheckStatus = COGifPlugin.backendCheckStatus(for: COGifPlugin.savedBackend())
         }
-
-        backendCheckStatus = COGifPlugin.backendCheckStatus(for: COGifPlugin.savedBackend())
         callback(.refresh, nil)
     }
 
