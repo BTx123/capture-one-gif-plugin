@@ -86,6 +86,10 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
     }
 
     private enum FrameDelay: String {
+        case delay100 = "1.00"
+        case delay050 = "0.50"
+        case delay020 = "0.20"
+        case delay012 = "0.12"
         case delay010 = "0.10"
         case delay006 = "0.06"
         case delay004 = "0.04"
@@ -94,6 +98,14 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
 
         var seconds: Double {
             switch self {
+            case .delay100:
+                return 1.00
+            case .delay050:
+                return 0.50
+            case .delay020:
+                return 0.20
+            case .delay012:
+                return 0.12
             case .delay010:
                 return 0.10
             case .delay006:
@@ -109,6 +121,14 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
 
         var displayName: String {
             switch self {
+            case .delay100:
+                return "1.00 sec (1 FPS)"
+            case .delay050:
+                return "0.50 sec (2 FPS)"
+            case .delay020:
+                return "0.20 sec (5 FPS)"
+            case .delay012:
+                return "0.12 sec (8.3 FPS)"
             case .delay010:
                 return "0.10 sec (10 FPS)"
             case .delay006:
@@ -261,6 +281,10 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         frameDelay.title = "Frame Delay"
         frameDelay.identifier = Setting.frameDelay
         frameDelay.options = [
+            COSettingsListOption(value: FrameDelay.delay100.rawValue as NSSecureCoding, title: FrameDelay.delay100.displayName, image: nil),
+            COSettingsListOption(value: FrameDelay.delay050.rawValue as NSSecureCoding, title: FrameDelay.delay050.displayName, image: nil),
+            COSettingsListOption(value: FrameDelay.delay020.rawValue as NSSecureCoding, title: FrameDelay.delay020.displayName, image: nil),
+            COSettingsListOption(value: FrameDelay.delay012.rawValue as NSSecureCoding, title: FrameDelay.delay012.displayName, image: nil),
             COSettingsListOption(value: FrameDelay.delay010.rawValue as NSSecureCoding, title: FrameDelay.delay010.displayName, image: nil),
             COSettingsListOption(value: FrameDelay.delay006.rawValue as NSSecureCoding, title: FrameDelay.delay006.displayName, image: nil),
             COSettingsListOption(value: FrameDelay.delay004.rawValue as NSSecureCoding, title: FrameDelay.delay004.displayName, image: nil),
