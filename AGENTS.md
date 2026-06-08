@@ -65,6 +65,19 @@ Prefer local SDK docs and headers before guessing:
 
 If asking about external libraries, SDKs, APIs, or CLI syntax, use Context7 first when available.
 
+## CI/CD Structure
+
+For complex CI/CD, prefer small focused workflows plus shared reusable pieces instead of one large YAML.
+
+- Split by purpose: `ci.yml` for lint/test/build, `release.yml`, `deploy.yml`, `scheduled.yml`.
+- Use clear job names, `run-name`, concurrency, explicit least-privilege `permissions`, and consistent input/output names.
+- Use reusable workflows with `workflow_call` for large shared pipelines like build/test matrices or deploy flows.
+- Use composite actions for repeated small steps like setup, caching, formatting, packaging, and upload prep.
+- Move larger shell logic into `scripts/` instead of long inline Bash blocks.
+- Use GitHub Environments for dev/staging/prod with scoped secrets and required reviewers for prod.
+- Prefer OIDC with cloud provider roles over long-lived cloud keys when possible.
+- Never print secrets. Rotate secrets regularly.
+
 ## Code Rules
 
 - Use existing Swift style in `COGifPlugin/COGifPlugin.swift`.
