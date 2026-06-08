@@ -15,6 +15,20 @@ brew install ffmpeg
 brew install imagemagick
 ```
 
+## Install From Release
+
+Close Capture One before installing or replacing the plugin.
+
+1. Open the latest GitHub release.
+2. Download the plugin zip for your Mac:
+   - Apple Silicon: `COGifPlugin-<version>-macos-arm64.zip`
+   - Intel: `COGifPlugin-<version>-macos-x86_64.zip`
+3. Do not download `Source code (zip)` or `Source code (tar.gz)` for installation.
+4. Unzip the downloaded file. It contains `COGifPlugin.coplugin`.
+5. Double-click `COGifPlugin.coplugin` to launch the Capture One plugin installer.
+
+Restart Capture One after installing.
+
 ## Build
 
 From repository root:
@@ -45,7 +59,7 @@ xcodebuild \
   build
 ```
 
-## Install
+## Install Local Build
 
 Close Capture One before installing or relinking the plugin.
 
