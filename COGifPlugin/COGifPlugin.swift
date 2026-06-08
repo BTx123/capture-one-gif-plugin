@@ -11,6 +11,8 @@ import ImageIO
 final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSettings {
     private enum PersistentSetting {
         static let backend = "backend"
+        static let checkSelectedBackend = "checkSelectedBackend"
+        static let backendCheckStatus = "backendCheckStatus"
     }
 
     private enum Setting {
@@ -22,6 +24,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
     }
 
     private static let fallbackOutputName = "CreateGIF"
+    private var backendCheckStatus: String?
 
     private enum Backend: String {
         case ffmpeg
@@ -33,6 +36,15 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
                 return "FFmpeg"
             case .magick:
                 return "ImageMagick"
+            }
+        }
+
+        var executableName: String {
+            switch self {
+            case .ffmpeg:
+                return "ffmpeg"
+            case .magick:
+                return "magick"
             }
         }
     }
@@ -242,6 +254,19 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         backend.value = COGifPlugin.savedBackend().rawValue as NSSecureCoding
         options.elements.append(backend)
 
+        let backendCheck = COSettingsButtonItem()
+        backendCheck.title = "Check"
+        backendCheck.identifier = PersistentSetting.checkSelectedBackend
+        backendCheck.informativeText = "Checks whether the selected backend executable is available and reads its version."
+        options.elements.append(backendCheck)
+
+        let backendStatus = COSettingsLabelItem()
+        backendStatus.title = ""
+        backendStatus.identifier = PersistentSetting.backendCheckStatus
+        backendStatus.value = backendCheckStatus ?? ""
+        backendStatus.informativeText = ""
+        options.elements.append(backendStatus)
+
         return [options]
     }
 
@@ -257,10 +282,13 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         UserDefaults.standard.set(rawValue, forKey: PersistentSetting.backend)
     }
 
-    func handle(_ event: COSettingsEvent, for _: COSettingsItem, callback _: @escaping COSettingsCallback) throws {
-        guard event == .none else {
+    func handle(_ event: COSettingsEvent, for item: COSettingsItem, callback: @escaping COSettingsCallback) throws {
+        guard event == .buttonClick, item.identifier == PersistentSetting.checkSelectedBackend else {
             throw COGifPluginError.invalidAction
         }
+
+        backendCheckStatus = COGifPlugin.backendCheckStatus(for: COGifPlugin.savedBackend())
+        callback(.refresh, nil)
     }
 
     // MARK: - COActionSettings
@@ -385,7 +413,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
     // MARK: - GIF generation
 
     private static func createGifWithFFmpeg(files: [String], options: GifOptions, targetDimensions: CGSize, outputURL: URL, task: COFileHandlingPluginTask, progress: COPluginTaskProgress) throws {
-        let ffmpegURL = try executableURL(named: "ffmpeg")
+        let ffmpegURL = try executableURL(named: Backend.ffmpeg.executableName)
         let framesDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("COGifPlugin-\(UUID().uuidString)", isDirectory: true)
         progress(task, 2, 5, "Normalizing frames")
         if task.cancelled {
@@ -421,7 +449,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             outputURL.path
         ]
 
-        progress(task, 3, 5, "Running FFmpeg")
+        progress(task, 3, 5, "Running \(Backend.ffmpeg.displayName)")
         if task.cancelled {
             return
         }
@@ -433,7 +461,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
     }
 
     private static func createGifWithMagick(files: [String], options: GifOptions, targetDimensions: CGSize, outputURL: URL, task: COFileHandlingPluginTask, progress: COPluginTaskProgress) throws {
-        let magickURL = try executableURL(named: "magick")
+        let magickURL = try executableURL(named: Backend.magick.executableName)
         let delay = max(1, Int((options.frameDelay.seconds * 100.0).rounded()))
         var arguments = ["-delay", "\(delay)"]
 
@@ -466,7 +494,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             return
         }
 
-        progress(task, 3, 5, "Running ImageMagick")
+        progress(task, 3, 5, "Running \(Backend.magick.displayName)")
         try run(executableURL: magickURL, arguments: arguments)
         if task.cancelled {
             try? FileManager.default.removeItem(at: outputURL)
@@ -501,6 +529,86 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             let data = (try? Data(contentsOf: logUrl)) ?? Data()
             let output = String(data: data, encoding: .utf8) ?? ""
             throw COGifPluginError.commandFailed(command: executableURL.lastPathComponent, output: output)
+        }
+    }
+
+    private static func commandOutput(executableURL: URL, arguments: [String]) throws -> String {
+        let process = Process()
+        process.executableURL = executableURL
+        process.arguments = arguments
+
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
+
+        do {
+            try process.run()
+        } catch {
+            throw COGifPluginError.commandFailed(command: executableURL.lastPathComponent, output: error.localizedDescription)
+        }
+
+        process.waitUntilExit()
+
+        let data = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: data, encoding: .utf8) ?? ""
+        guard process.terminationStatus == 0 else {
+            throw COGifPluginError.commandFailed(command: executableURL.lastPathComponent, output: output)
+        }
+
+        return output
+    }
+
+    private static func backendCheckStatus(for backend: Backend) -> String {
+        let resolvedExecutableURL: URL
+        do {
+            resolvedExecutableURL = try executableURL(named: backend.executableName)
+        } catch {
+            return "\(backend.displayName) not found on PATH or common install locations."
+        }
+
+        let version: String?
+        do {
+            let output = try commandOutput(executableURL: resolvedExecutableURL, arguments: ["-version"])
+            version = parsedVersion(for: backend, from: output)
+        } catch {
+            version = nil
+        }
+
+        guard let version = version else {
+            return "\(backend.displayName) found at \(resolvedExecutableURL.path)\nUnable to parse version."
+        }
+
+        return "\(backend.displayName) found at \(resolvedExecutableURL.path)\nVersion: \(version)"
+    }
+
+    private static func parsedVersion(for backend: Backend, from output: String) -> String? {
+        guard let firstLine = output
+            .components(separatedBy: .newlines)
+            .first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        else {
+            return nil
+        }
+
+        switch backend {
+        case .ffmpeg:
+            let prefix = "ffmpeg version "
+            guard firstLine.hasPrefix(prefix) else {
+                return nil
+            }
+
+            return firstLine
+                .dropFirst(prefix.count)
+                .split(separator: " ")
+                .first
+                .map(String.init)
+        case .magick:
+            let parts = firstLine.split(separator: " ")
+            guard parts.count >= 3, parts[0] == "Version:", parts[1] == "ImageMagick" else {
+                return nil
+            }
+
+            return String(parts[2])
         }
     }
 
