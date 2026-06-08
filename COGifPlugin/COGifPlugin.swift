@@ -223,10 +223,18 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         let options = COSettingsElementsGroup()
         options.identifier = "\(COGifPlugin.bundleIdentifier).pluginOptions"
         options.title = "GIF Maker"
+        
+        let help = COSettingsLabelItem()
+        help.title = ""
+        help.identifier = "help"
+        help.value = "Prior to creating a GIF, ensure one of the below backends is installed and available on PATH. You can verify FFmpeg is installed by running `ffmpeg -version` in the terminal. You can verify ImageMagick is installed by running `magick -version` in the terminal."
+        help.informativeText = ""
+        options.elements.append(help)
 
         let backend = COSettingsListItem()
         backend.title = "Backend"
         backend.identifier = PersistentSetting.backend
+        backend.informativeText = "Choose which external tool creates GIF files."
         backend.options = [
             COSettingsListOption(value: Backend.ffmpeg.rawValue as NSSecureCoding, title: Backend.ffmpeg.displayName, image: nil),
             COSettingsListOption(value: Backend.magick.rawValue as NSSecureCoding, title: Backend.magick.displayName, image: nil),
@@ -269,6 +277,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         let quality = COSettingsListItem()
         quality.title = "Quality"
         quality.identifier = Setting.quality
+        quality.informativeText = "Sets the GIF color palette size. Higher quality keeps more colors and may create larger files."
         quality.options = [
             COSettingsListOption(value: Quality.low.rawValue as NSSecureCoding, title: Quality.low.displayName, image: nil),
             COSettingsListOption(value: Quality.medium.rawValue as NSSecureCoding, title: Quality.medium.displayName, image: nil),
@@ -280,6 +289,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         let frameDelay = COSettingsListItem()
         frameDelay.title = "Frame Delay"
         frameDelay.identifier = Setting.frameDelay
+        frameDelay.informativeText = "Sets how long each selected image appears in the GIF. Longer delays create slower animations."
         frameDelay.options = [
             COSettingsListOption(value: FrameDelay.delay100.rawValue as NSSecureCoding, title: FrameDelay.delay100.displayName, image: nil),
             COSettingsListOption(value: FrameDelay.delay050.rawValue as NSSecureCoding, title: FrameDelay.delay050.displayName, image: nil),
@@ -297,12 +307,14 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         let looping = COSettingsBoolItem()
         looping.title = "Loop"
         looping.identifier = Setting.loop
+        looping.informativeText = "When enabled, the GIF repeats continuously. When disabled, playback stops after one pass."
         looping.value = settings[Setting.loop] as? Bool ?? true
         options.elements.append(looping)
 
         let frameOrder = COSettingsListItem()
         frameOrder.title = "Frame Order"
         frameOrder.identifier = Setting.frameOrder
+        frameOrder.informativeText = "Controls the order selected images are added to the GIF."
         frameOrder.options = [
             COSettingsListOption(value: FrameOrder.filenameAscending.rawValue as NSSecureCoding, title: FrameOrder.filenameAscending.displayName, image: nil),
             COSettingsListOption(value: FrameOrder.filenameDescending.rawValue as NSSecureCoding, title: FrameOrder.filenameDescending.displayName, image: nil),
@@ -315,6 +327,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         let revealInFinder = COSettingsBoolItem()
         revealInFinder.title = "Reveal in Finder"
         revealInFinder.identifier = Setting.revealInFinder
+        revealInFinder.informativeText = "Opens Finder and selects the created GIF after export completes."
         revealInFinder.value = settings[Setting.revealInFinder] as? Bool ?? true
         options.elements.append(revealInFinder)
 
