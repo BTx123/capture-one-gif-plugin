@@ -1,0 +1,84 @@
+name: Build
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT: COGifPlugin.xcodeproj
+  SCHEME: COGifPlugin
+  CONFIGURATION: Release
+  PRODUCT: COGifPlugin.coplugin
+
+jobs:
+  build:
+    name: Build plugin (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+            artifact_suffix: macos-arm64
+          - arch: x86_64
+            runner: macos-15-intel
+            artifact_suffix: macos-x86_64
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Show toolchain
+        run: |
+          set -euo pipefail
+          uname -a
+          uname -m
+          xcodebuild -version
+          swift --version
+
+      - name: Set plugin version
+        shell: bash
+        run: scripts/set-plugin-version.sh
+
+      - name: Build plugin
+        run: |
+          set -euo pipefail
+          DERIVED_DATA="$RUNNER_TEMP/COGifPluginDerivedData"
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -derivedDataPath "$DERIVED_DATA" \
+            ARCHS="${{ matrix.arch }}" \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGN_IDENTITY="-" \
+            build
+
+      - name: Verify plugin
+        run: |
+          set -euo pipefail
+          DERIVED_DATA="$RUNNER_TEMP/COGifPluginDerivedData"
+          PRODUCT_PATH="$DERIVED_DATA/Build/Products/$CONFIGURATION/$PRODUCT"
+          test -d "$PRODUCT_PATH"
+          codesign --verify --deep --strict --verbose=2 "$PRODUCT_PATH"
+          file "$PRODUCT_PATH/Contents/MacOS/$SCHEME"
+          lipo -info "$PRODUCT_PATH/Contents/MacOS/$SCHEME"
+
+      - name: Package plugin
+        run: |
+          set -euo pipefail
+          DERIVED_DATA="$RUNNER_TEMP/COGifPluginDerivedData"
+          PRODUCT_PATH="$DERIVED_DATA/Build/Products/$CONFIGURATION/$PRODUCT"
+          mkdir -p dist
+          ditto -c -k --keepParent "$PRODUCT_PATH" "dist/COGifPlugin-${PLUGIN_VERSION}-${{ matrix.artifact_suffix }}.zip"
+
+      - name: Upload plugin artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: COGifPlugin-${{ matrix.artifact_suffix }}
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 14
