@@ -492,7 +492,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         formatter.dateFormat = "yyyyMMddHHmmss"
 
         let firstImageName = sanitizedOutputBaseName(for: firstImagePath)
-        let fileName = "\(formatter.string(from: Date()))-\(firstImageName).gif"
+        let fileName = "\(firstImageName)-\(formatter.string(from: Date())).gif"
         return URL(fileURLWithPath: destination).appendingPathComponent(fileName)
     }
 
