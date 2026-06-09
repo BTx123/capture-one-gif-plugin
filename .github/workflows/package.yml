@@ -1,0 +1,47 @@
+name: Package
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT: COGifPlugin.coplugin
+
+jobs:
+  package:
+    name: Package (${{ matrix.artifact_suffix }})
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact_suffix: macos-arm64
+          - artifact_suffix: macos-x86_64
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: COGifPlugin-build-${{ matrix.artifact_suffix }}
+          path: build-artifacts/${{ matrix.artifact_suffix }}
+
+      - name: Package plugin
+        run: |
+          set -euo pipefail
+          PRODUCT_PATH="build-artifacts/${{ matrix.artifact_suffix }}/$PRODUCT"
+          INFO_PLIST="$PRODUCT_PATH/Contents/Info.plist"
+          test -d "$PRODUCT_PATH"
+          test -f "$INFO_PLIST"
+          PLUGIN_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO_PLIST")"
+          mkdir -p dist
+          ditto -c -k --keepParent "$PRODUCT_PATH" "dist/COGifPlugin-${PLUGIN_VERSION}-${{ matrix.artifact_suffix }}.zip"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: COGifPlugin-package-${{ matrix.artifact_suffix }}
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 14

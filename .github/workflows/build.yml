@@ -67,18 +67,18 @@ jobs:
           file "$PRODUCT_PATH/Contents/MacOS/$SCHEME"
           lipo -info "$PRODUCT_PATH/Contents/MacOS/$SCHEME"
 
-      - name: Package plugin
+      - name: Stage build artifact
         run: |
           set -euo pipefail
           DERIVED_DATA="$RUNNER_TEMP/COGifPluginDerivedData"
           PRODUCT_PATH="$DERIVED_DATA/Build/Products/$CONFIGURATION/$PRODUCT"
-          mkdir -p dist
-          ditto -c -k --keepParent "$PRODUCT_PATH" "dist/COGifPlugin-${PLUGIN_VERSION}-${{ matrix.artifact_suffix }}.zip"
+          mkdir -p build-artifacts
+          ditto "$PRODUCT_PATH" "build-artifacts/$PRODUCT"
 
-      - name: Upload plugin artifact
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: COGifPlugin-${{ matrix.artifact_suffix }}
-          path: dist/*.zip
+          name: COGifPlugin-build-${{ matrix.artifact_suffix }}
+          path: build-artifacts
           if-no-files-found: error
           retention-days: 14
