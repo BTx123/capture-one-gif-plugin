@@ -16,8 +16,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test:
+    name: Test
+    uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
+
   build:
     name: Build
+    needs: test
     uses: ./.github/workflows/build.yml
     permissions:
       contents: read

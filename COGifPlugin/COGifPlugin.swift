@@ -9,13 +9,13 @@ import Foundation
 import ImageIO
 
 final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSettings {
-    private enum PersistentSetting {
+    enum PersistentSetting {
         static let backend = "backend"
         static let checkSelectedBackend = "checkSelectedBackend"
         static let backendCheckStatus = "backendCheckStatus"
     }
 
-    private enum Setting {
+    enum Setting {
         static let quality = "quality"
         static let frameDelay = "frameDelay"
         static let loop = "loop"
@@ -23,10 +23,10 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         static let revealInFinder = "revealInFinder"
     }
 
-    private static let fallbackOutputName = "CreateGIF"
+    static let fallbackOutputName = "CreateGIF"
     private var backendCheckStatus: String?
 
-    private enum Backend: String {
+    enum Backend: String {
         case ffmpeg
         case magick
 
@@ -49,7 +49,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         }
     }
 
-    private enum Quality: String {
+    enum Quality: String {
         case low
         case medium
         case high
@@ -77,7 +77,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         }
     }
 
-    private enum FrameOrder: String {
+    enum FrameOrder: String {
         case filenameAscending
         case filenameDescending
         case captureOneOrder
@@ -97,7 +97,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         }
     }
 
-    private enum FrameDelay: String {
+    enum FrameDelay: String {
         case delay100 = "1.00"
         case delay050 = "0.50"
         case delay020 = "0.20"
@@ -155,7 +155,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         }
     }
 
-    private struct GifOptions {
+    struct GifOptions {
         let backend: Backend
         let quality: Quality
         let frameDelay: FrameDelay
@@ -411,7 +411,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
 
     // MARK: - GIF generation
 
-    private static func createGifWithFFmpeg(files: [String], options: GifOptions, targetDimensions: CGSize, outputURL: URL, task: COFileHandlingPluginTask, progress: COPluginTaskProgress) throws {
+    static func createGifWithFFmpeg(files: [String], options: GifOptions, targetDimensions: CGSize, outputURL: URL, task: COFileHandlingPluginTask, progress: COPluginTaskProgress) throws {
         let ffmpegURL = try executableURL(named: Backend.ffmpeg.executableName)
         let framesDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("COGifPlugin-\(UUID().uuidString)", isDirectory: true)
         progress(task, 2, 5, "Normalizing frames")
@@ -459,7 +459,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         }
     }
 
-    private static func createGifWithMagick(files: [String], options: GifOptions, targetDimensions: CGSize, outputURL: URL, task: COFileHandlingPluginTask, progress: COPluginTaskProgress) throws {
+    static func createGifWithMagick(files: [String], options: GifOptions, targetDimensions: CGSize, outputURL: URL, task: COFileHandlingPluginTask, progress: COPluginTaskProgress) throws {
         let magickURL = try executableURL(named: Backend.magick.executableName)
         let delay = max(1, Int((options.frameDelay.seconds * 100.0).rounded()))
         var arguments = ["-delay", "\(delay)"]
@@ -500,7 +500,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         }
     }
 
-    private static func run(executableURL: URL, arguments: [String]) throws {
+    static func run(executableURL: URL, arguments: [String]) throws {
         let process = Process()
         process.executableURL = executableURL
         process.arguments = arguments
@@ -531,7 +531,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         }
     }
 
-    private static func commandOutput(executableURL: URL, arguments: [String]) throws -> String {
+    static func commandOutput(executableURL: URL, arguments: [String]) throws -> String {
         let process = Process()
         process.executableURL = executableURL
         process.arguments = arguments
@@ -557,7 +557,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         return output
     }
 
-    private static func backendCheckStatus(for backend: Backend) -> String {
+    static func backendCheckStatus(for backend: Backend) -> String {
         let resolvedExecutableURL: URL
         do {
             resolvedExecutableURL = try executableURL(named: backend.executableName)
@@ -580,7 +580,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         return "\(backend.displayName) found at \(resolvedExecutableURL.path)\nVersion: \(version)"
     }
 
-    private static func parsedVersion(for backend: Backend, from output: String) -> String? {
+    static func parsedVersion(for backend: Backend, from output: String) -> String? {
         guard let firstLine = output
             .components(separatedBy: .newlines)
             .first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })?
@@ -611,7 +611,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         }
     }
 
-    private static func executableURL(named name: String) throws -> URL {
+    static func executableURL(named name: String) throws -> URL {
         let pathEnvironment = ProcessInfo.processInfo.environment["PATH"] ?? ""
         let searchPaths = pathEnvironment
             .split(separator: ":")
@@ -633,7 +633,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         throw COGifPluginError.missingExecutable(name: name)
     }
 
-    private static func outputURL(for task: COPluginTask, firstImagePath: String) throws -> URL {
+    static func outputURL(for task: COPluginTask, firstImagePath: String) throws -> URL {
         let destination = task.environment?[.destinationFolder]
             ?? task.environment?[.temporaryFolder]
             ?? NSTemporaryDirectory()
@@ -647,7 +647,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         return URL(fileURLWithPath: destination).appendingPathComponent(fileName)
     }
 
-    private static func options(from settings: [String: NSSecureCoding]) throws -> GifOptions {
+    static func options(from settings: [String: NSSecureCoding]) throws -> GifOptions {
         let qualityValue = settings[Setting.quality] as? String ?? Quality.high.rawValue
         guard let quality = Quality(rawValue: qualityValue) else {
             throw COGifPluginError.invalidSettingValue(setting: "Quality")
@@ -673,7 +673,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         )
     }
 
-    private static func savedBackend() -> Backend {
+    static func savedBackend() -> Backend {
         guard
             let rawValue = UserDefaults.standard.string(forKey: PersistentSetting.backend),
             let backend = Backend(rawValue: rawValue)
@@ -684,7 +684,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         return backend
     }
 
-    private static func ordered(files: [String], by frameOrder: FrameOrder) -> [String] {
+    static func ordered(files: [String], by frameOrder: FrameOrder) -> [String] {
         switch frameOrder {
         case .filenameAscending:
             return files.sorted {
@@ -701,7 +701,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         }
     }
 
-    private static func imagePixelSize(at path: String) throws -> CGSize {
+    static func imagePixelSize(at path: String) throws -> CGSize {
         let url = URL(fileURLWithPath: path)
         guard
             let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
@@ -717,14 +717,14 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         return CGSize(width: width.intValue, height: height.intValue)
     }
 
-    private static func targetDimensions(for files: [String]) throws -> CGSize {
+    static func targetDimensions(for files: [String]) throws -> CGSize {
         let sizes = try files.map { try imagePixelSize(at: $0) }
         let maxWidth = sizes.map(\.width).max() ?? 0
         let maxHeight = sizes.map(\.height).max() ?? 0
         return CGSize(width: maxWidth, height: maxHeight)
     }
 
-    private static func ffmpegConcatList(for files: [String], frameDelay: FrameDelay) -> String {
+    static func ffmpegConcatList(for files: [String], frameDelay: FrameDelay) -> String {
         let duration = String(format: "%.6f", frameDelay.seconds)
         var list = ""
 
@@ -737,7 +737,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         return list
     }
 
-    private static func normalizedFrameURLs(for files: [String], targetDimensions: CGSize, outputDirectory: URL) throws -> [URL] {
+    static func normalizedFrameURLs(for files: [String], targetDimensions: CGSize, outputDirectory: URL) throws -> [URL] {
         let fileManager = FileManager.default
         try fileManager.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
 
@@ -748,7 +748,8 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             let sourceURL = URL(fileURLWithPath: file)
             let sourceSize = try COGifPlugin.imagePixelSize(at: file)
             guard
-                let image = NSImage(contentsOf: sourceURL),
+                let imageSource = CGImageSourceCreateWithURL(sourceURL as CFURL, nil),
+                let image = CGImageSourceCreateImageAtIndex(imageSource, 0, nil),
                 let bitmap = NSBitmapImageRep(
                     bitmapDataPlanes: nil,
                     pixelsWide: width,
@@ -778,10 +779,11 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             )
 
             NSGraphicsContext.saveGraphicsState()
-            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
-            NSColor.black.setFill()
-            NSRect(x: 0, y: 0, width: targetDimensions.width, height: targetDimensions.height).fill()
-            image.draw(in: drawRect, from: .zero, operation: .sourceOver, fraction: 1.0)
+            let context = NSGraphicsContext(bitmapImageRep: bitmap)?.cgContext
+            context?.setFillColor(NSColor.black.cgColor)
+            context?.fill(CGRect(x: 0, y: 0, width: targetDimensions.width, height: targetDimensions.height))
+            context?.interpolationQuality = .high
+            context?.draw(image, in: drawRect)
             NSGraphicsContext.restoreGraphicsState()
 
             guard let data = bitmap.representation(using: .png, properties: [:]) else {
@@ -794,11 +796,11 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         }
     }
 
-    private static func ffmpegGifFilter(colorCount: Int) -> String {
+    static func ffmpegGifFilter(colorCount: Int) -> String {
         return "[0:v]format=rgba,split[palettein][gifin];[palettein]palettegen=max_colors=\(colorCount)[palette];[gifin][palette]paletteuse"
     }
 
-    private static func sanitizedOutputBaseName(for path: String) -> String {
+    static func sanitizedOutputBaseName(for path: String) -> String {
         let baseName = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
         let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
         let sanitizedScalars = baseName.unicodeScalars.map { scalar -> Character in
@@ -808,14 +810,14 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         return sanitized.isEmpty ? fallbackOutputName : sanitized
     }
 
-    private static func ffmpegConcatPath(_ path: String) -> String {
+    static func ffmpegConcatPath(_ path: String) -> String {
         let escaped = path
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "'", with: "\\'")
         return "'\(escaped)'"
     }
 
-    private static var bundleIdentifier: String {
+    static var bundleIdentifier: String {
         return Bundle(for: COGifPlugin.self).bundleIdentifier ?? "COGifPlugin"
     }
 

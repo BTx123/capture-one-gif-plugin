@@ -8,16 +8,46 @@
 
 /* Begin PBXBuildFile section */
 		0D34F9D427DF834F00B1DE61 /* CaptureOnePlugins.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D34F9D327DF834F00B1DE61 /* CaptureOnePlugins.framework */; };
+		2FFF244C38AF49E38B24A55E /* COGifPluginTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 322402A32F0E412E93290784 /* COGifPluginTests.swift */; };
+		490410A5ED9348A59C72075D /* COGifPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A46303A204E880200C00D97 /* COGifPlugin.swift */; };
 		4A176E8E209C6CAE0008951F /* COGifPluginIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = 4A176E8D209C6CAE0008951F /* COGifPluginIcon.icns */; };
 		4A46303B204E880200C00D97 /* COGifPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A46303A204E880200C00D97 /* COGifPlugin.swift */; };
+		C05592FDD93D4423A3994A37 /* CaptureOnePlugins.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 0D34F9D327DF834F00B1DE61 /* CaptureOnePlugins.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DD89B28ECA04497998396E0F /* CaptureOnePlugins.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D34F9D327DF834F00B1DE61 /* CaptureOnePlugins.framework */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		76E432FAF8E54DCFBB211CF6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4A46300B204E864500C00D97 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4A463012204E864500C00D97;
+			remoteInfo = COGifPlugin;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DA62AAFEA0124CA595888B0A /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				C05592FDD93D4423A3994A37 /* CaptureOnePlugins.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		0D34F9D327DF834F00B1DE61 /* CaptureOnePlugins.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CaptureOnePlugins.framework; path = sdk/Library/Frameworks/CaptureOnePlugins.framework; sourceTree = "<group>"; };
+		322402A32F0E412E93290784 /* COGifPluginTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = COGifPluginTests.swift; sourceTree = "<group>"; };
 		4A176E8D209C6CAE0008951F /* COGifPluginIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = COGifPluginIcon.icns; sourceTree = "<group>"; };
 		4A463013204E864500C00D97 /* COGifPlugin.coplugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = COGifPlugin.coplugin; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A463016204E864500C00D97 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4A46303A204E880200C00D97 /* COGifPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = COGifPlugin.swift; sourceTree = "<group>"; };
+		A40B546F0E32486B8F6530A3 /* COGifPluginTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = COGifPluginTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -29,6 +59,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7FC2FE45CC0A4D53A917798E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DD89B28ECA04497998396E0F /* CaptureOnePlugins.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -36,6 +74,7 @@
 			isa = PBXGroup;
 			children = (
 				4A463015204E864500C00D97 /* COGifPlugin */,
+				903F71B07D2A491DBB3CD5A0 /* COGifPluginTests */,
 				4A463014204E864500C00D97 /* Products */,
 				4A463033204E86C700C00D97 /* Frameworks */,
 			);
@@ -45,6 +84,7 @@
 			isa = PBXGroup;
 			children = (
 				4A463013204E864500C00D97 /* COGifPlugin.coplugin */,
+				A40B546F0E32486B8F6530A3 /* COGifPluginTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -67,6 +107,14 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		903F71B07D2A491DBB3CD5A0 /* COGifPluginTests */ = {
+			isa = PBXGroup;
+			children = (
+				322402A32F0E412E93290784 /* COGifPluginTests.swift */,
+			);
+			path = COGifPluginTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -87,6 +135,25 @@
 			productReference = 4A463013204E864500C00D97 /* COGifPlugin.coplugin */;
 			productType = "com.apple.product-type.bundle";
 		};
+		EC36FA2F880B4E3EB6CB5F58 /* COGifPluginTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6D3D736809B142398BAC12E3 /* Build configuration list for PBXNativeTarget "COGifPluginTests" */;
+			buildPhases = (
+				CC1FC19434734ACD968B9C6D /* Sources */,
+				7FC2FE45CC0A4D53A917798E /* Frameworks */,
+				F71C22945DA6488A87D73713 /* Resources */,
+				DA62AAFEA0124CA595888B0A /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A6BD74D1B02F4842A439FEF2 /* PBXTargetDependency */,
+			);
+			name = COGifPluginTests;
+			productName = COGifPluginTests;
+			productReference = A40B546F0E32486B8F6530A3 /* COGifPluginTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -99,6 +166,10 @@
 					4A463012204E864500C00D97 = {
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 0920;
+						ProvisioningStyle = Automatic;
+					};
+					EC36FA2F880B4E3EB6CB5F58 = {
+						CreatedOnToolsVersion = 17.0;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -117,6 +188,7 @@
 			projectRoot = "";
 			targets = (
 				4A463012204E864500C00D97 /* COGifPlugin */,
+				EC36FA2F880B4E3EB6CB5F58 /* COGifPluginTests */,
 			);
 		};
 /* End PBXProject section */
@@ -127,6 +199,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				4A176E8E209C6CAE0008951F /* COGifPluginIcon.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F71C22945DA6488A87D73713 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -141,9 +220,45 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CC1FC19434734ACD968B9C6D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				490410A5ED9348A59C72075D /* COGifPlugin.swift in Sources */,
+				2FFF244C38AF49E38B24A55E /* COGifPluginTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		A6BD74D1B02F4842A439FEF2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4A463012204E864500C00D97 /* COGifPlugin */;
+			targetProxy = 76E432FAF8E54DCFBB211CF6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		3EDC09FCDDA043919664B087 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = "\"$(SRCROOT)/sdk/Library/Frameworks\"";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/.. @loader_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.brian-tom.capture-one-gif-plugin.tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "";
+			};
+			name = Debug;
+		};
 		4A463017204E864500C00D97 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -265,7 +380,7 @@
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MARKETING_VERSION = 0.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.brian-tom.COGifPlugin";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.brian-tom.capture-one-gif-plugin";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -287,11 +402,29 @@
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MARKETING_VERSION = 0.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.brian-tom.COGifPlugin";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.brian-tom.capture-one-gif-plugin";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = NO;
 				SWIFT_VERSION = 5.0;
 				WRAPPER_EXTENSION = coplugin;
+			};
+			name = Release;
+		};
+		8801E90F107B4787BB194CA3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = "\"$(SRCROOT)/sdk/Library/Frameworks\"";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/.. @loader_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.brian-tom.capture-one-gif-plugin.tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "";
 			};
 			name = Release;
 		};
@@ -312,6 +445,15 @@
 			buildConfigurations = (
 				4A46301A204E864500C00D97 /* Debug */,
 				4A46301B204E864500C00D97 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6D3D736809B142398BAC12E3 /* Build configuration list for PBXNativeTarget "COGifPluginTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3EDC09FCDDA043919664B087 /* Debug */,
+				8801E90F107B4787BB194CA3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

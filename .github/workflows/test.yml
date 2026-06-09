@@ -1,0 +1,64 @@
+name: Test
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT: COGifPlugin.xcodeproj
+  SCHEME: COGifPlugin
+  CONFIGURATION: Debug
+
+jobs:
+  test:
+    name: XCTest (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+            artifact_suffix: macos-arm64
+          - arch: x86_64
+            runner: macos-15-intel
+            artifact_suffix: macos-x86_64
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Show toolchain
+        run: |
+          set -euo pipefail
+          uname -a
+          uname -m
+          xcodebuild -version
+          swift --version
+
+      - name: Run tests
+        run: |
+          set -euo pipefail
+          DERIVED_DATA="$RUNNER_TEMP/COGifPluginTestDerivedData-${{ matrix.artifact_suffix }}"
+          RESULT_BUNDLE="$RUNNER_TEMP/COGifPluginTests-${{ matrix.artifact_suffix }}.xcresult"
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath "$RESULT_BUNDLE" \
+            ARCHS="${{ matrix.arch }}" \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGN_IDENTITY="-" \
+            test
+
+      - name: Upload test result bundle
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: COGifPluginTests-${{ matrix.artifact_suffix }}-xcresult
+          path: ${{ runner.temp }}/COGifPluginTests-${{ matrix.artifact_suffix }}.xcresult
+          if-no-files-found: ignore
+          retention-days: 14
