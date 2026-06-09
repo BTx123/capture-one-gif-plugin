@@ -13,8 +13,18 @@ env:
 
 jobs:
   test:
-    name: XCTest
-    runs-on: macos-15
+    name: XCTest (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+            artifact_suffix: macos-arm64
+          - arch: x86_64
+            runner: macos-15-intel
+            artifact_suffix: macos-x86_64
 
     steps:
       - name: Check out repository
@@ -31,14 +41,16 @@ jobs:
       - name: Run tests
         run: |
           set -euo pipefail
-          DERIVED_DATA="$RUNNER_TEMP/COGifPluginTestDerivedData"
-          RESULT_BUNDLE="$RUNNER_TEMP/COGifPluginTests.xcresult"
+          DERIVED_DATA="$RUNNER_TEMP/COGifPluginTestDerivedData-${{ matrix.artifact_suffix }}"
+          RESULT_BUNDLE="$RUNNER_TEMP/COGifPluginTests-${{ matrix.artifact_suffix }}.xcresult"
           xcodebuild \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
             -configuration "$CONFIGURATION" \
             -derivedDataPath "$DERIVED_DATA" \
             -resultBundlePath "$RESULT_BUNDLE" \
+            ARCHS="${{ matrix.arch }}" \
+            ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_IDENTITY="-" \
             test
 
@@ -46,7 +58,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
         with:
-          name: COGifPluginTests-xcresult
-          path: ${{ runner.temp }}/COGifPluginTests.xcresult
+          name: COGifPluginTests-${{ matrix.artifact_suffix }}-xcresult
+          path: ${{ runner.temp }}/COGifPluginTests-${{ matrix.artifact_suffix }}.xcresult
           if-no-files-found: ignore
           retention-days: 14
