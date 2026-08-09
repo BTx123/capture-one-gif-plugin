@@ -32,11 +32,12 @@ final class COGifPluginTests: XCTestCase {
         XCTAssertTrue(try plugin.editingActions(withFileInfo: ["JPEG": 1]).isEmpty)
 
         let actions = try plugin.editingActions(withFileInfo: ["JPEG": 1, "TIFF": 1])
-        XCTAssertEqual(actions.count, 1)
+        XCTAssertEqual(actions.count, 2)
         XCTAssertTrue(actions[0].isEqual(to: COGifPlugin.createGifAction))
+        XCTAssertTrue(actions[1].isEqual(to: COGifPlugin.createVideoAction))
     }
 
-    func testValidateAcceptsKnownActionSettings() throws {
+    func testValidateAcceptsKnownGifActionSettings() throws {
         let plugin = COGifPlugin()
         let settings: [String: NSSecureCoding] = [
             COGifPlugin.Setting.quality: COGifPlugin.Quality.medium.rawValue as NSSecureCoding,
@@ -47,7 +48,18 @@ final class COGifPluginTests: XCTestCase {
         XCTAssertNoThrow(try plugin.validate(settings, for: COGifPlugin.createGifAction))
     }
 
-    func testValidateRejectsInvalidActionSettings() {
+    func testValidateAcceptsKnownVideoActionSettings() throws {
+        let plugin = COGifPlugin()
+        let settings: [String: NSSecureCoding] = [
+            COGifPlugin.Setting.videoQuality: COGifPlugin.VideoQuality.medium.rawValue as NSSecureCoding,
+            COGifPlugin.Setting.frameDelay: COGifPlugin.FrameDelay.delay020.rawValue as NSSecureCoding,
+            COGifPlugin.Setting.frameOrder: COGifPlugin.FrameOrder.captureOneOrder.rawValue as NSSecureCoding,
+        ]
+
+        XCTAssertNoThrow(try plugin.validate(settings, for: COGifPlugin.createVideoAction))
+    }
+
+    func testValidateRejectsInvalidGifActionSettings() {
         let plugin = COGifPlugin()
 
         XCTAssertThrowsError(try plugin.validate([COGifPlugin.Setting.quality: "maximum" as NSSecureCoding], for: COGifPlugin.createGifAction)) { error in
@@ -60,6 +72,34 @@ final class COGifPluginTests: XCTestCase {
 
         XCTAssertThrowsError(try plugin.validate([COGifPlugin.Setting.frameOrder: "random" as NSSecureCoding], for: COGifPlugin.createGifAction)) { error in
             assertInvalidSetting(error, "Frame order")
+        }
+
+        XCTAssertThrowsError(try plugin.validate([COGifPlugin.Setting.videoQuality: COGifPlugin.VideoQuality.high.rawValue as NSSecureCoding], for: COGifPlugin.createGifAction)) { error in
+            assertInvalidSetting(error, "Video Quality")
+        }
+    }
+
+    func testValidateRejectsInvalidVideoActionSettings() {
+        let plugin = COGifPlugin()
+
+        XCTAssertThrowsError(try plugin.validate([COGifPlugin.Setting.videoQuality: "maximum" as NSSecureCoding], for: COGifPlugin.createVideoAction)) { error in
+            assertInvalidSetting(error, "Video Quality")
+        }
+
+        XCTAssertThrowsError(try plugin.validate([COGifPlugin.Setting.frameDelay: "fast" as NSSecureCoding], for: COGifPlugin.createVideoAction)) { error in
+            assertInvalidSetting(error, "Delay")
+        }
+
+        XCTAssertThrowsError(try plugin.validate([COGifPlugin.Setting.frameOrder: "random" as NSSecureCoding], for: COGifPlugin.createVideoAction)) { error in
+            assertInvalidSetting(error, "Frame Order")
+        }
+
+        XCTAssertThrowsError(try plugin.validate([COGifPlugin.Setting.quality: COGifPlugin.Quality.high.rawValue as NSSecureCoding], for: COGifPlugin.createVideoAction)) { error in
+            assertInvalidSetting(error, "Quality")
+        }
+
+        XCTAssertThrowsError(try plugin.validate([COGifPlugin.Setting.loop: true as NSSecureCoding], for: COGifPlugin.createVideoAction)) { error in
+            assertInvalidSetting(error, "Loop")
         }
     }
 
@@ -93,6 +133,26 @@ final class COGifPluginTests: XCTestCase {
         XCTAssertEqual(savedBackend.backend, .magick)
     }
 
+    func testVideoOptionsUseDefaults() throws {
+        let defaults = try COGifPlugin.videoOptions(from: [:])
+        XCTAssertEqual(defaults.videoQuality, .high)
+        XCTAssertEqual(defaults.frameDelay, .delay010)
+        XCTAssertEqual(defaults.frameOrder, .filenameAscending)
+        XCTAssertTrue(defaults.revealInFinder)
+    }
+
+    func testVideoSettingsOmitLoopAndUseVideoQuality() throws {
+        let plugin = COGifPlugin()
+        let groups = try plugin.settings(for: COGifPlugin.createVideoAction, settings: [:])
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups[0].title, "Video")
+
+        let identifiers = groups[0].elements.compactMap(\.identifier)
+        XCTAssertTrue(identifiers.contains(COGifPlugin.Setting.videoQuality))
+        XCTAssertFalse(identifiers.contains(COGifPlugin.Setting.quality))
+        XCTAssertFalse(identifiers.contains(COGifPlugin.Setting.loop))
+    }
+
     func testFrameOrdering() {
         let files = [
             "/tmp/frame-10.jpg",
@@ -118,6 +178,13 @@ final class COGifPluginTests: XCTestCase {
         XCTAssertEqual(COGifPlugin.sanitizedOutputBaseName(for: "/tmp/A_B-C.png"), "A_B-C")
     }
 
+    func testOutputURLExtension() throws {
+        let task = COFileHandlingPluginTask(action: COGifPlugin.createGifAction, files: [])
+
+        XCTAssertEqual(try COGifPlugin.outputURL(for: task, firstImagePath: "/tmp/Frame 01.jpg").pathExtension, "gif")
+        XCTAssertEqual(try COGifPlugin.outputURL(for: task, firstImagePath: "/tmp/Frame 01.jpg", fileExtension: "mp4").pathExtension, "mp4")
+    }
+
     func testFFmpegConcatEscapingAndFilter() {
         let files = [
             "/tmp/frame one.png",
@@ -135,6 +202,33 @@ final class COGifPluginTests: XCTestCase {
         XCTAssertEqual(
             COGifPlugin.ffmpegGifFilter(colorCount: 64),
             "[0:v]format=rgba,split[palettein][gifin];[palettein]palettegen=max_colors=64[palette];[gifin][palette]paletteuse"
+        )
+    }
+
+    func testFFmpegVideoFilterAndArguments() {
+        let options = COGifPlugin.VideoOptions(
+            frameDelay: .delay010,
+            frameOrder: .captureOneOrder,
+            videoQuality: .medium,
+            frameRate: .fps24,
+            revealInFinder: false
+        )
+
+        XCTAssertEqual(COGifPlugin.ffmpegVideoFilter(frameRate: "30"), "fps=30,format=yuv420p")
+        XCTAssertEqual(
+            COGifPlugin.ffmpegVideoArguments(listURL: URL(fileURLWithPath: "/tmp/list.txt"), outputURL: URL(fileURLWithPath: "/tmp/out.mp4"), options: options),
+            [
+                "-y",
+                "-f", "concat",
+                "-safe", "0",
+                "-i", "/tmp/list.txt",
+                "-vf", "fps=24,format=yuv420p",
+                "-c:v", "libx264",
+                "-preset", "medium",
+                "-crf", "23",
+                "-movflags", "+faststart",
+                "/tmp/out.mp4",
+            ]
         )
     }
 
@@ -161,6 +255,15 @@ final class COGifPluginTests: XCTestCase {
         XCTAssertEqual(try COGifPlugin.targetDimensions(for: [first.path, second.path]), CGSize(width: 30, height: 12))
     }
 
+    func testVideoTargetDimensionsAreEven() throws {
+        let directory = try makeTemporaryDirectory()
+        let first = try writePNG(named: "odd.png", width: 7, height: 9, color: .red, in: directory)
+        let second = try writePNG(named: "wide.png", width: 30, height: 6, color: .blue, in: directory)
+
+        XCTAssertEqual(try COGifPlugin.videoTargetDimensions(for: [first.path, second.path]), CGSize(width: 30, height: 10))
+        XCTAssertEqual(COGifPlugin.evenDimensions(for: CGSize(width: 11, height: 12)), CGSize(width: 12, height: 12))
+    }
+
     func testNormalizedFramesUseTargetDimensionsAndBlackLetterbox() throws {
         let directory = try makeTemporaryDirectory()
         let source = try writePNG(named: "square.png", width: 10, height: 10, color: .red, in: directory)
@@ -182,7 +285,7 @@ final class COGifPluginTests: XCTestCase {
 
     func testErrorDescriptionsAndReasons() {
         XCTAssertEqual(COGifPluginError.invalidAction.errorDescription, "Invalid action.")
-        XCTAssertEqual(COGifPluginError.invalidTaskFiles.failureReason, "Capture One did not provide enough valid image files for GIF generation.")
+        XCTAssertEqual(COGifPluginError.invalidTaskFiles.failureReason, "Capture One did not provide enough valid image files for output generation.")
         XCTAssertEqual(COGifPluginError.missingExecutable(name: "ffmpeg").errorDescription, "Missing ffmpeg.")
         XCTAssertEqual(COGifPluginError.commandFailed(command: "ffmpeg", output: "bad input").failureReason, "bad input")
     }
@@ -234,6 +337,33 @@ final class COGifPluginTests: XCTestCase {
             files: files,
             options: options,
             targetDimensions: try COGifPlugin.targetDimensions(for: files),
+            outputURL: outputURL,
+            task: task,
+            progress: { _, _, _, _ in }
+        )
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: outputURL.path))
+        XCTAssertGreaterThan((try? Data(contentsOf: outputURL).count) ?? 0, 0)
+    }
+
+    func testFFmpegIntegrationCreatesMP4WhenInstalled() throws {
+        _ = try executableOrSkip(named: COGifPlugin.Backend.ffmpeg.executableName)
+        let directory = try makeTemporaryDirectory()
+        let files = try sampleFramePaths(in: directory)
+        let outputURL = directory.appendingPathComponent("ffmpeg.mp4")
+        let task = COFileHandlingPluginTask(action: COGifPlugin.createVideoAction, files: files)
+        let options = COGifPlugin.VideoOptions(
+            frameDelay: .delay010,
+            frameOrder: .captureOneOrder,
+            videoQuality: .low,
+            frameRate: .fps24,
+            revealInFinder: false
+        )
+
+        try COGifPlugin.createVideoWithFFmpeg(
+            files: files,
+            options: options,
+            targetDimensions: try COGifPlugin.videoTargetDimensions(for: files),
             outputURL: outputURL,
             task: task,
             progress: { _, _, _, _ in }
