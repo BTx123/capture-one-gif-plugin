@@ -39,6 +39,7 @@ jobs:
           swift --version
 
       - name: Run tests
+        id: tests
         run: |
           set -euo pipefail
           DERIVED_DATA="$RUNNER_TEMP/COGifPluginTestDerivedData-${{ matrix.artifact_suffix }}"
@@ -53,6 +54,14 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_IDENTITY="-" \
             test
+
+      - name: Report test results
+        if: ${{ always() && steps.tests.outcome != 'skipped' }}
+        env:
+          RESULT_BUNDLE: ${{ runner.temp }}/COGifPluginTests-${{ matrix.artifact_suffix }}.xcresult
+          JOB_LABEL: ${{ matrix.artifact_suffix }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: bash scripts/report-test-results.sh
 
       - name: Upload test result bundle
         uses: actions/upload-artifact@v7
