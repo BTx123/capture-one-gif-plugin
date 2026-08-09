@@ -17,9 +17,11 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
 
     enum Setting {
         static let quality = "quality"
+        static let videoQuality = "videoQuality"
         static let frameDelay = "frameDelay"
         static let loop = "loop"
         static let frameOrder = "frameOrder"
+        static let frameRate = "frameRate"
         static let revealInFinder = "revealInFinder"
     }
 
@@ -73,6 +75,34 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
                 return 128
             case .high:
                 return 256
+            }
+        }
+    }
+
+    enum VideoQuality: String {
+        case low
+        case medium
+        case high
+
+        var displayName: String {
+            switch self {
+            case .low:
+                return "Low"
+            case .medium:
+                return "Medium"
+            case .high:
+                return "High"
+            }
+        }
+
+        var crf: Int {
+            switch self {
+            case .low:
+                return 28
+            case .medium:
+                return 23
+            case .high:
+                return 18
             }
         }
     }
@@ -154,6 +184,23 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             }
         }
     }
+    
+    enum FrameRate: String {
+        case fps60 = "60"
+        case fps30 = "30"
+        case fps24 = "24"
+        
+        var displayName: String {
+            switch self {
+            case .fps24:
+                return "24 FPS"
+            case .fps30:
+                return "30 FPS"
+            case .fps60:
+                return "60 FPS"
+            }
+        }
+    }
 
     struct GifOptions {
         let backend: Backend
@@ -161,6 +208,14 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         let frameDelay: FrameDelay
         let loop: Bool
         let frameOrder: FrameOrder
+        let revealInFinder: Bool
+    }
+
+    struct VideoOptions {
+        let frameDelay: FrameDelay
+        let frameOrder: FrameOrder
+        let videoQuality: VideoQuality
+        let frameRate: FrameRate
         let revealInFinder: Bool
     }
 
@@ -173,11 +228,11 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             return []
         }
 
-        return [COGifPlugin.createGifAction]
+        return [COGifPlugin.createGifAction, COGifPlugin.createVideoAction]
     }
 
     func startEditing(_ task: COFileHandlingPluginTask, progress: @escaping COPluginTaskProgress) throws -> COPluginActionImageResult {
-        guard task.action.isEqual(to: COGifPlugin.createGifAction) else {
+        guard task.action.isEqual(to: COGifPlugin.createGifAction) || task.action.isEqual(to: COGifPlugin.createVideoAction) else {
             throw COGifPluginError.invalidAction
         }
 
@@ -186,43 +241,76 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             throw COGifPluginError.invalidTaskFiles
         }
 
-        let options = try COGifPlugin.options(from: task.settings ?? [:])
-        let orderedFiles = COGifPlugin.ordered(files: files, by: options.frameOrder)
-        let targetDimensions = try COGifPlugin.targetDimensions(for: orderedFiles)
-        let outputURL = try COGifPlugin.outputURL(for: task, firstImagePath: orderedFiles[0])
+        if task.action.isEqual(to: COGifPlugin.createGifAction) {
+            let options = try COGifPlugin.gifOptions(from: task.settings ?? [:])
+            let orderedFiles = COGifPlugin.ordered(files: files, by: options.frameOrder)
+            let targetDimensions = try COGifPlugin.targetDimensions(for: orderedFiles)
+            let outputURL = try COGifPlugin.outputURL(for: task, firstImagePath: orderedFiles[0], fileExtension: "gif")
 
-        progress(task, 1, 5, "Preparing GIF")
+            progress(task, 1, 5, "Preparing GIF")
 
-        if task.cancelled {
+            if task.cancelled {
+                return COPluginActionImageResult()
+            }
+
+            switch options.backend {
+            case .ffmpeg:
+                try COGifPlugin.createGifWithFFmpeg(files: orderedFiles, options: options, targetDimensions: targetDimensions, outputURL: outputURL, task: task, progress: progress)
+            case .magick:
+                try COGifPlugin.createGifWithMagick(files: orderedFiles, options: options, targetDimensions: targetDimensions, outputURL: outputURL, task: task, progress: progress)
+            }
+
+            if task.cancelled {
+                try? FileManager.default.removeItem(at: outputURL)
+                return COPluginActionImageResult()
+            }
+
+            progress(task, 4, 5, "Writing \(outputURL.lastPathComponent)")
+
+            if options.revealInFinder {
+                NSWorkspace.shared.activateFileViewerSelecting([outputURL])
+            }
+
+            progress(task, 5, 5, "Done")
+            return COPluginActionImageResult(images: [outputURL.path])
+        }
+
+        if task.action.isEqual(to: COGifPlugin.createVideoAction) {
+            let options = try COGifPlugin.videoOptions(from: task.settings ?? [:])
+            let orderedFiles = COGifPlugin.ordered(files: files, by: options.frameOrder)
+            let targetDimensions = try COGifPlugin.videoTargetDimensions(for: orderedFiles)
+            let outputURL = try COGifPlugin.outputURL(for: task, firstImagePath: orderedFiles[0], fileExtension: "mp4")
+
+            progress(task, 1, 5, "Preparing Video")
+
+            if task.cancelled {
+                return COPluginActionImageResult()
+            }
+
+            try COGifPlugin.createVideoWithFFmpeg(files: orderedFiles, options: options, targetDimensions: targetDimensions, outputURL: outputURL, task: task, progress: progress)
+
+            if task.cancelled {
+                try? FileManager.default.removeItem(at: outputURL)
+                return COPluginActionImageResult()
+            }
+
+            progress(task, 4, 5, "Writing \(outputURL.lastPathComponent)")
+
+            if options.revealInFinder {
+                NSWorkspace.shared.activateFileViewerSelecting([outputURL])
+            }
+
+            progress(task, 5, 5, "Done")
             return COPluginActionImageResult()
         }
 
-        switch options.backend {
-        case .ffmpeg:
-            try COGifPlugin.createGifWithFFmpeg(files: orderedFiles, options: options, targetDimensions: targetDimensions, outputURL: outputURL, task: task, progress: progress)
-        case .magick:
-            try COGifPlugin.createGifWithMagick(files: orderedFiles, options: options, targetDimensions: targetDimensions, outputURL: outputURL, task: task, progress: progress)
-        }
-
-        if task.cancelled {
-            try? FileManager.default.removeItem(at: outputURL)
-            return COPluginActionImageResult()
-        }
-
-        progress(task, 4, 5, "Writing \(outputURL.lastPathComponent)")
-
-        if options.revealInFinder {
-            NSWorkspace.shared.activateFileViewerSelecting([outputURL])
-        }
-
-        progress(task, 5, 5, "Done")
-        return COPluginActionImageResult(images: [outputURL.path])
+        throw COGifPluginError.invalidAction
     }
 
     // MARK: - COFileHandling
 
     func tasks(for action: COPluginAction, forFiles files: [String]) throws -> [COFileHandlingPluginTask] {
-        guard action.isEqual(to: COGifPlugin.createGifAction) else {
+        guard action.isEqual(to: COGifPlugin.createGifAction) || action.isEqual(to: COGifPlugin.createVideoAction) else {
             throw COGifPluginError.invalidAction
         }
 
@@ -235,7 +323,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         let options = COSettingsElementsGroup()
         options.identifier = "\(COGifPlugin.bundleIdentifier).pluginOptions"
         options.title = "GIF Maker"
-        
+
         let help = COSettingsLabelItem()
         help.title = ""
         help.identifier = "help"
@@ -275,7 +363,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             guard let rawValue = value as? String, Backend(rawValue: rawValue) != nil else {
                 throw COGifPluginError.invalidSettingValue(setting: "Backend")
             }
-            
+
             UserDefaults.standard.set(rawValue, forKey: PersistentSetting.backend)
             backendCheckStatus = nil
         }
@@ -293,30 +381,48 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
     // MARK: - COActionSettings
 
     func settings(for action: COPluginAction, settings: [String: NSSecureCoding]) throws -> [COSettingsElementsGroup] {
-        guard action.isEqual(to: COGifPlugin.createGifAction) else {
+        guard action.isEqual(to: COGifPlugin.createGifAction) || action.isEqual(to: COGifPlugin.createVideoAction) else {
             return []
         }
 
         let options = COSettingsElementsGroup()
-        options.identifier = "\(COGifPlugin.bundleIdentifier).gifOptions"
-        options.title = "GIF"
+        options.identifier = action.isEqual(to: COGifPlugin.createGifAction)
+            ? "\(COGifPlugin.bundleIdentifier).gifOptions"
+            : "\(COGifPlugin.bundleIdentifier).videoOptions"
+        options.title = action.isEqual(to: COGifPlugin.createGifAction) ? "GIF" : "Video"
 
-        let quality = COSettingsListItem()
-        quality.title = "Quality"
-        quality.identifier = Setting.quality
-        quality.informativeText = "Sets the GIF color palette size. Higher quality keeps more colors and may create larger files."
-        quality.options = [
-            COSettingsListOption(value: Quality.low.rawValue as NSSecureCoding, title: Quality.low.displayName, image: nil),
-            COSettingsListOption(value: Quality.medium.rawValue as NSSecureCoding, title: Quality.medium.displayName, image: nil),
-            COSettingsListOption(value: Quality.high.rawValue as NSSecureCoding, title: Quality.high.displayName, image: nil),
-        ]
-        quality.value = settings[Setting.quality] ?? Quality.high.rawValue as NSSecureCoding
-        options.elements.append(quality)
+        if action.isEqual(to: COGifPlugin.createGifAction) {
+            let quality = COSettingsListItem()
+            quality.title = "Quality"
+            quality.identifier = Setting.quality
+            quality.informativeText = "Sets the GIF color palette size. Higher quality keeps more colors and may create larger files."
+            quality.options = [
+                COSettingsListOption(value: Quality.low.rawValue as NSSecureCoding, title: Quality.low.displayName, image: nil),
+                COSettingsListOption(value: Quality.medium.rawValue as NSSecureCoding, title: Quality.medium.displayName, image: nil),
+                COSettingsListOption(value: Quality.high.rawValue as NSSecureCoding, title: Quality.high.displayName, image: nil),
+            ]
+            quality.value = settings[Setting.quality] ?? Quality.high.rawValue as NSSecureCoding
+            options.elements.append(quality)
+        } else {
+            let quality = COSettingsListItem()
+            quality.title = "Quality"
+            quality.identifier = Setting.videoQuality
+            quality.informativeText = "Sets MP4 compression quality. Higher quality creates larger files."
+            quality.options = [
+                COSettingsListOption(value: VideoQuality.low.rawValue as NSSecureCoding, title: VideoQuality.low.displayName, image: nil),
+                COSettingsListOption(value: VideoQuality.medium.rawValue as NSSecureCoding, title: VideoQuality.medium.displayName, image: nil),
+                COSettingsListOption(value: VideoQuality.high.rawValue as NSSecureCoding, title: VideoQuality.high.displayName, image: nil),
+            ]
+            quality.value = settings[Setting.videoQuality] ?? VideoQuality.high.rawValue as NSSecureCoding
+            options.elements.append(quality)
+        }
 
         let frameDelay = COSettingsListItem()
         frameDelay.title = "Frame Delay"
         frameDelay.identifier = Setting.frameDelay
-        frameDelay.informativeText = "Sets how long each selected image appears in the GIF. Longer delays create slower animations."
+        frameDelay.informativeText = action.isEqual(to: COGifPlugin.createGifAction)
+            ? "Sets how long each selected image appears in the GIF. Longer delays create slower animations."
+            : "Sets how long each selected image appears in the video. Longer delays create slower videos."
         frameDelay.options = [
             COSettingsListOption(value: FrameDelay.delay100.rawValue as NSSecureCoding, title: FrameDelay.delay100.displayName, image: nil),
             COSettingsListOption(value: FrameDelay.delay050.rawValue as NSSecureCoding, title: FrameDelay.delay050.displayName, image: nil),
@@ -331,17 +437,21 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         frameDelay.value = settings[Setting.frameDelay] ?? FrameDelay.delay010.rawValue as NSSecureCoding
         options.elements.append(frameDelay)
 
-        let looping = COSettingsBoolItem()
-        looping.title = "Loop"
-        looping.identifier = Setting.loop
-        looping.informativeText = "When enabled, the GIF repeats continuously. When disabled, playback stops after one pass."
-        looping.value = settings[Setting.loop] as? Bool ?? true
-        options.elements.append(looping)
+        if action.isEqual(to: COGifPlugin.createGifAction) {
+            let looping = COSettingsBoolItem()
+            looping.title = "Loop"
+            looping.identifier = Setting.loop
+            looping.informativeText = "When enabled, the GIF repeats continuously. When disabled, playback stops after one pass."
+            looping.value = settings[Setting.loop] as? Bool ?? true
+            options.elements.append(looping)
+        }
 
         let frameOrder = COSettingsListItem()
         frameOrder.title = "Frame Order"
         frameOrder.identifier = Setting.frameOrder
-        frameOrder.informativeText = "Controls the order selected images are added to the GIF."
+        frameOrder.informativeText = action.isEqual(to: COGifPlugin.createGifAction)
+            ? "Controls the order selected images are added to the GIF."
+            : "Controls the order selected images are added to the video."
         frameOrder.options = [
             COSettingsListOption(value: FrameOrder.filenameAscending.rawValue as NSSecureCoding, title: FrameOrder.filenameAscending.displayName, image: nil),
             COSettingsListOption(value: FrameOrder.filenameDescending.rawValue as NSSecureCoding, title: FrameOrder.filenameDescending.displayName, image: nil),
@@ -350,11 +460,27 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         ]
         frameOrder.value = settings[Setting.frameOrder] ?? FrameOrder.filenameAscending.rawValue as NSSecureCoding
         options.elements.append(frameOrder)
+        
+        if action.isEqual(to: COGifPlugin.createVideoAction) {
+            let frameRate = COSettingsListItem()
+            frameRate.title = "Frame Rate"
+            frameRate.identifier = Setting.frameRate
+            frameRate.informativeText = "Sets the frame rate of the output video."
+            frameRate.options = [
+                COSettingsListOption(value: FrameRate.fps24.rawValue as NSSecureCoding, title: FrameRate.fps24.displayName, image: nil),
+                COSettingsListOption(value: FrameRate.fps30.rawValue as NSSecureCoding, title: FrameRate.fps30.displayName, image: nil),
+                COSettingsListOption(value: FrameRate.fps60.rawValue as NSSecureCoding, title: FrameRate.fps60.displayName, image: nil)
+            ]
+            frameRate.value = settings[Setting.frameRate] ?? FrameRate.fps24.rawValue as NSSecureCoding
+            options.elements.append(frameRate)
+        }
 
         let revealInFinder = COSettingsBoolItem()
         revealInFinder.title = "Reveal in Finder"
         revealInFinder.identifier = Setting.revealInFinder
-        revealInFinder.informativeText = "Opens Finder and selects the created GIF after export completes."
+        revealInFinder.informativeText = action.isEqual(to: COGifPlugin.createGifAction)
+            ? "Opens Finder and selects the created GIF after export completes."
+            : "Opens Finder and selects the created video after export completes."
         revealInFinder.value = settings[Setting.revealInFinder] as? Bool ?? true
         options.elements.append(revealInFinder)
 
@@ -368,9 +494,21 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             }
         }
 
+        if identifier == Setting.videoQuality {
+            guard let rawValue = value as? String, VideoQuality(rawValue: rawValue) != nil else {
+                throw COGifPluginError.invalidSettingValue(setting: "Video Quality")
+            }
+        }
+
         if identifier == Setting.frameDelay {
             guard let rawValue = value as? String, FrameDelay(rawValue: rawValue) != nil else {
                 throw COGifPluginError.invalidSettingValue(setting: "Frame Delay")
+            }
+        }
+        
+        if identifier == Setting.frameRate {
+            guard let rawValue = value as? String, FrameRate(rawValue: rawValue) != nil else {
+                throw COGifPluginError.invalidSettingValue(setting: "Frame Rate")
             }
         }
 
@@ -382,11 +520,17 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
     }
 
     func validate(_ settings: [String: NSSecureCoding], for action: COPluginAction) throws {
-        guard action.isEqual(to: COGifPlugin.createGifAction) else {
-            throw COGifPluginError.invalidAction
+        if action.isEqual(to: COGifPlugin.createGifAction) {
+            _ = try COGifPlugin.gifOptions(from: settings)
+            return
         }
 
-        _ = try COGifPlugin.options(from: settings)
+        if action.isEqual(to: COGifPlugin.createVideoAction) {
+            _ = try COGifPlugin.videoOptions(from: settings)
+            return
+        }
+
+        throw COGifPluginError.invalidAction
     }
 
     // MARK: - COVariantProcessing
@@ -495,6 +639,42 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
 
         progress(task, 3, 5, "Running \(Backend.magick.displayName)")
         try run(executableURL: magickURL, arguments: arguments)
+        if task.cancelled {
+            try? FileManager.default.removeItem(at: outputURL)
+        }
+    }
+
+    // MARK: - Video generation
+
+    static func createVideoWithFFmpeg(files: [String], options: VideoOptions, targetDimensions: CGSize, outputURL: URL, task: COFileHandlingPluginTask, progress: COPluginTaskProgress) throws {
+        let ffmpegURL = try executableURL(named: Backend.ffmpeg.executableName)
+        let framesDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("COGifPlugin-\(UUID().uuidString)", isDirectory: true)
+        progress(task, 2, 5, "Normalizing frames")
+        if task.cancelled {
+            return
+        }
+
+        let normalizedFrames = try COGifPlugin.normalizedFrameURLs(for: files, targetDimensions: targetDimensions, outputDirectory: framesDirectory)
+        if task.cancelled {
+            try? FileManager.default.removeItem(at: framesDirectory)
+            return
+        }
+
+        let listURL = FileManager.default.temporaryDirectory.appendingPathComponent("COGifPlugin-\(UUID().uuidString).txt")
+        let list = COGifPlugin.ffmpegConcatList(for: normalizedFrames.map(\.path), frameDelay: options.frameDelay)
+
+        try list.write(to: listURL, atomically: true, encoding: .utf8)
+        defer {
+            try? FileManager.default.removeItem(at: listURL)
+            try? FileManager.default.removeItem(at: framesDirectory)
+        }
+
+        progress(task, 3, 5, "Running \(Backend.ffmpeg.displayName)")
+        if task.cancelled {
+            return
+        }
+
+        try run(executableURL: ffmpegURL, arguments: COGifPlugin.ffmpegVideoArguments(listURL: listURL, outputURL: outputURL, options: options))
         if task.cancelled {
             try? FileManager.default.removeItem(at: outputURL)
         }
@@ -633,7 +813,7 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         throw COGifPluginError.missingExecutable(name: name)
     }
 
-    static func outputURL(for task: COPluginTask, firstImagePath: String) throws -> URL {
+    static func outputURL(for task: COPluginTask, firstImagePath: String, fileExtension: String = "gif") throws -> URL {
         let destination = task.environment?[.destinationFolder]
             ?? task.environment?[.temporaryFolder]
             ?? NSTemporaryDirectory()
@@ -643,11 +823,19 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         formatter.dateFormat = "yyyyMMddHHmmss"
 
         let firstImageName = sanitizedOutputBaseName(for: firstImagePath)
-        let fileName = "\(firstImageName)-\(formatter.string(from: Date())).gif"
+        let fileName = "\(firstImageName)-\(formatter.string(from: Date())).\(fileExtension)"
         return URL(fileURLWithPath: destination).appendingPathComponent(fileName)
     }
 
     static func options(from settings: [String: NSSecureCoding]) throws -> GifOptions {
+        return try gifOptions(from: settings)
+    }
+
+    static func gifOptions(from settings: [String: NSSecureCoding]) throws -> GifOptions {
+        if settings[Setting.videoQuality] != nil {
+            throw COGifPluginError.invalidSettingValue(setting: "Video Quality")
+        }
+
         let qualityValue = settings[Setting.quality] as? String ?? Quality.high.rawValue
         guard let quality = Quality(rawValue: qualityValue) else {
             throw COGifPluginError.invalidSettingValue(setting: "Quality")
@@ -669,6 +857,44 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
             frameDelay: frameDelay,
             loop: settings[Setting.loop] as? Bool ?? true,
             frameOrder: frameOrder,
+            revealInFinder: settings[Setting.revealInFinder] as? Bool ?? true
+        )
+    }
+
+    static func videoOptions(from settings: [String: NSSecureCoding]) throws -> VideoOptions {
+        if settings[Setting.quality] != nil {
+            throw COGifPluginError.invalidSettingValue(setting: "Quality")
+        }
+
+        if settings[Setting.loop] != nil {
+            throw COGifPluginError.invalidSettingValue(setting: "Loop")
+        }
+
+        let qualityValue = settings[Setting.videoQuality] as? String ?? VideoQuality.high.rawValue
+        guard let quality = VideoQuality(rawValue: qualityValue) else {
+            throw COGifPluginError.invalidSettingValue(setting: "Video Quality")
+        }
+
+        let frameDelayValue = settings[Setting.frameDelay] as? String ?? FrameDelay.delay010.rawValue
+        guard let frameDelay = FrameDelay(rawValue: frameDelayValue) else {
+            throw COGifPluginError.invalidSettingValue(setting: "Delay")
+        }
+
+        let frameOrderValue = settings[Setting.frameOrder] as? String ?? FrameOrder.filenameAscending.rawValue
+        guard let frameOrder = FrameOrder(rawValue: frameOrderValue) else {
+            throw COGifPluginError.invalidSettingValue(setting: "Frame Order")
+        }
+        
+        let frameRateValue = settings[Setting.frameRate] as? String ?? FrameRate.fps24.rawValue
+        guard let frameRate = FrameRate(rawValue: frameRateValue) else {
+            throw COGifPluginError.invalidSettingValue(setting: "Frame Rate")
+        }
+
+        return VideoOptions(
+            frameDelay: frameDelay,
+            frameOrder: frameOrder,
+            videoQuality: quality,
+            frameRate: frameRate,
             revealInFinder: settings[Setting.revealInFinder] as? Bool ?? true
         )
     }
@@ -722,6 +948,20 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         let maxWidth = sizes.map(\.width).max() ?? 0
         let maxHeight = sizes.map(\.height).max() ?? 0
         return CGSize(width: maxWidth, height: maxHeight)
+    }
+
+    static func videoTargetDimensions(for files: [String]) throws -> CGSize {
+        let dimensions = try targetDimensions(for: files)
+        return evenDimensions(for: dimensions)
+    }
+
+    static func evenDimensions(for size: CGSize) -> CGSize {
+        let width = Int(size.width)
+        let height = Int(size.height)
+        return CGSize(
+            width: CGFloat(width.isMultiple(of: 2) ? width : width + 1),
+            height: CGFloat(height.isMultiple(of: 2) ? height : height + 1)
+        )
     }
 
     static func ffmpegConcatList(for files: [String], frameDelay: FrameDelay) -> String {
@@ -800,6 +1040,25 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         return "[0:v]format=rgba,split[palettein][gifin];[palettein]palettegen=max_colors=\(colorCount)[palette];[gifin][palette]paletteuse"
     }
 
+    static func ffmpegVideoFilter(frameRate: String) -> String {
+        return "fps=\(frameRate),format=yuv420p"
+    }
+
+    static func ffmpegVideoArguments(listURL: URL, outputURL: URL, options: VideoOptions) -> [String] {
+        return [
+            "-y",
+            "-f", "concat",
+            "-safe", "0",
+            "-i", listURL.path,
+            "-vf", ffmpegVideoFilter(frameRate: options.frameRate.rawValue),
+            "-c:v", "libx264",
+            "-preset", "medium",
+            "-crf", "\(options.videoQuality.crf)",
+            "-movflags", "+faststart",
+            outputURL.path,
+        ]
+    }
+
     static func sanitizedOutputBaseName(for path: String) -> String {
         let baseName = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
         let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
@@ -827,6 +1086,13 @@ final class COGifPlugin: COPluginBase, COEditingPlugin, COSettings, COActionSett
         action.image = NSImage(named: NSImage.multipleDocumentsName)
         return action
     }()
+
+    static let createVideoAction = { () -> COPluginAction in
+        let action = COPluginAction(displayName: "Create Video")
+        action.identifier = "\(COGifPlugin.bundleIdentifier).createVideoAction"
+        action.image = NSImage(named: NSImage.multipleDocumentsName)
+        return action
+    }()
 }
 
 enum COGifPluginError: LocalizedError {
@@ -843,7 +1109,7 @@ enum COGifPluginError: LocalizedError {
         case .invalidAction:
             return NSLocalizedString("Invalid action.", comment: "Error - invalidAction - short description")
         case .invalidTaskFiles:
-            return NSLocalizedString("Select at least one image to create a GIF.", comment: "Error - invalidTaskFiles - short description")
+            return NSLocalizedString("Select at least one image to create output.", comment: "Error - invalidTaskFiles - short description")
         case let .invalidSettingValue(setting):
             return NSLocalizedString("Invalid value for \(setting).", comment: "Error - invalidSettingValue - short description")
         case let .invalidImageSize(file):
@@ -862,17 +1128,17 @@ enum COGifPluginError: LocalizedError {
         case .invalidAction:
             return NSLocalizedString("The action cannot be performed by this plugin.", comment: "Error - invalidAction - long description")
         case .invalidTaskFiles:
-            return NSLocalizedString("Capture One did not provide enough valid image files for GIF generation.", comment: "Error - invalidTaskFiles - long description")
+            return NSLocalizedString("Capture One did not provide enough valid image files for output generation.", comment: "Error - invalidTaskFiles - long description")
         case let .invalidSettingValue(setting):
             return NSLocalizedString("\(setting) must be valid.", comment: "Error - invalidSettingValue - long description")
         case .invalidImageSize:
-            return NSLocalizedString("The plugin could not determine the image pixel dimensions needed for GIF scaling.", comment: "Error - invalidImageSize - long description")
+            return NSLocalizedString("The plugin could not determine the image pixel dimensions needed for scaling.", comment: "Error - invalidImageSize - long description")
         case .cannotRenderFrame:
-            return NSLocalizedString("The plugin could not draw one selected image into the GIF canvas.", comment: "Error - cannotRenderFrame - long description")
+            return NSLocalizedString("The plugin could not draw one selected image into the output canvas.", comment: "Error - cannotRenderFrame - long description")
         case let .missingExecutable(name):
             return NSLocalizedString("Install \(name) with Homebrew or place it in /opt/homebrew/bin, /usr/local/bin, or PATH.", comment: "Error - missisngExecutable - long description")
         case let .commandFailed(_, output):
-            return output.isEmpty ? NSLocalizedString("The external GIF backend returned a non-zero exit status.", comment: "Error - commandFailed - long description") : output
+            return output.isEmpty ? NSLocalizedString("The external backend returned a non-zero exit status.", comment: "Error - commandFailed - long description") : output
         }
     }
 }

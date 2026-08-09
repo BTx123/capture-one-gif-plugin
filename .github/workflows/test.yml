@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Show toolchain
         run: |
@@ -55,7 +55,7 @@ jobs:
             test
 
       - name: Upload test result bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: COGifPluginTests-${{ matrix.artifact_suffix }}-xcresult
