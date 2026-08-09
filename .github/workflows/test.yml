@@ -39,6 +39,7 @@ jobs:
           swift --version
 
       - name: Run tests
+        id: tests
         run: |
           set -euo pipefail
           DERIVED_DATA="$RUNNER_TEMP/COGifPluginTestDerivedData-${{ matrix.artifact_suffix }}"
@@ -53,6 +54,87 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_IDENTITY="-" \
             test
+
+      - name: Report test results
+        if: ${{ always() && steps.tests.outcome != 'skipped' }}
+        env:
+          RESULT_BUNDLE: ${{ runner.temp }}/COGifPluginTests-${{ matrix.artifact_suffix }}.xcresult
+          JOB_LABEL: ${{ matrix.artifact_suffix }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: |
+          set -uo pipefail
+
+          {
+            echo "## Test results — \`$JOB_LABEL\`"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ ! -e "$RESULT_BUNDLE" ]; then
+            echo "No result bundle produced (\`xcodebuild test\` outcome: \`$TEST_OUTCOME\`)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          SUMMARY_JSON="$RUNNER_TEMP/test-summary-$JOB_LABEL.json"
+          TESTS_JSON="$RUNNER_TEMP/test-tests-$JOB_LABEL.json"
+
+          if ! xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE" --compact > "$SUMMARY_JSON"; then
+            echo "Could not read the result bundle with \`xcresulttool\` (\`xcodebuild test\` outcome: \`$TEST_OUTCOME\`)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          jq -r '
+            def num(x): (x // 0);
+            "| Result | Total | Passed | Failed | Skipped | Expected failures |",
+            "| :--- | ---: | ---: | ---: | ---: | ---: |",
+            "| \(.result // "unknown") | \(num(.totalTestCount)) | \(num(.passedTests)) | \(num(.failedTests)) | \(num(.skippedTests)) | \(num(.expectedFailures)) |",
+            "",
+            ((.environmentDescription // "") | if . == "" then empty else "_\(.)_" end)
+          ' "$SUMMARY_JSON" >> "$GITHUB_STEP_SUMMARY"
+
+          jq -r '
+            def cell: (. // "") | gsub("\r"; "") | gsub("\n"; "<br>") | gsub("\\|"; "\\|");
+            ((.testFailures // []) | if type == "array" then . else [.] end) as $failures
+            | if ($failures | length) == 0 then empty
+              else
+                "", "### Failures", "",
+                "| Test | Target | Message |", "| :--- | :--- | :--- |",
+                ($failures[] | "| `\(.testName // "unknown" | cell)` | \(.targetName // "unknown" | cell) | \(.failureText | cell) |")
+              end
+          ' "$SUMMARY_JSON" >> "$GITHUB_STEP_SUMMARY"
+
+          if xcrun xcresulttool get test-results tests --path "$RESULT_BUNDLE" --compact > "$TESTS_JSON"; then
+            jq -r '
+              def icon:
+                if . == "Passed" then "✅"
+                elif . == "Failed" then "❌"
+                elif . == "Skipped" then "⏭️"
+                elif . == "Expected Failure" then "⚠️"
+                else "❔" end;
+              def cell: (. // "") | gsub("\\|"; "\\|");
+              def is_group: . == "Test Suite" or . == "Unit test bundle" or . == "UI test bundle";
+              def cases($suite):
+                .[]? as $node
+                | if $node.nodeType == "Test Case"
+                  then {
+                    suite: $suite,
+                    name: $node.name,
+                    result: ($node.result // "unknown"),
+                    duration: ($node.duration // "—")
+                  }
+                  else ($node.children | cases(if ($node.nodeType | is_group) then $node.name else $suite end))
+                  end;
+              [.testNodes | cases("")] as $cases
+              | if ($cases | length) == 0 then empty
+                else
+                  "", "<details><summary>All tests (\($cases | length))</summary>", "",
+                  "| | Test | Suite | Duration |", "| :--- | :--- | :--- | ---: |",
+                  ($cases
+                    | sort_by([(.result == "Passed"), .suite, .name])[]
+                    | "| \(.result | icon) | `\(.name | cell)` | \(.suite | cell) | \(.duration | cell) |"),
+                  "", "</details>"
+                end
+            ' "$TESTS_JSON" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload test result bundle
         uses: actions/upload-artifact@v7
